@@ -2,6 +2,7 @@ from app import db
 from datetime import datetime
 from flask import url_for
 import os
+from flask_login import UserMixin
 
 class Report(db.Model):
     __tablename__ = "report"
@@ -30,5 +31,22 @@ class Report(db.Model):
             "lng": self.lng,
             "image_url": image_url,
             "status": self.status,
+            "created_at": self.created_at.isoformat()
+        }
+
+
+class User(UserMixin, db.Model):
+    __tablename__ = "user"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
             "created_at": self.created_at.isoformat()
         }
