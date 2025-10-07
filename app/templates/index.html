@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Registrar problema</h5>
+        <form id="report-form">
+          <div class="mb-2">
+            <label class="form-label">Título</label>
+            <input name="title" class="form-control" required maxlength="140">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Categoria</label>
+            <select name="category" class="form-select">
+              <option value="iluminacao">Iluminação Pública</option>
+              <option value="via_publica">Vias e Calçadas</option>
+              <option value="agua_esgoto">Água e Esgoto</option>
+              <option value="limpeza">Limpeza Urbana</option>
+              <option value="outros" selected>Outros</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Descrição</label>
+            <textarea name="description" class="form-control" rows="4" required></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Foto (opcional)</label>
+            <input type="file" name="image" accept="image/*" class="form-control">
+          </div>
+          <input type="hidden" name="lat">
+          <input type="hidden" name="lng">
+          <div class="d-grid">
+            <button class="btn btn-primary">Enviar</button>
+          </div>
+        </form>
+        <div id="form-alert" class="alert mt-3 d-none"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Sua localização</h5>
+        <div id="map" style="height: 420px;"></div>
+        <small class="text-muted">Arraste o marcador caso precise ajustar o local.</small>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  window.addEventListener('DOMContentLoaded', () => initCitizenPage());
+</script>
+{% endblock %}
