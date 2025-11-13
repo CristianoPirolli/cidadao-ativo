@@ -74,6 +74,11 @@ app/uploads/residence_proofs/*
 app/data/municipios_cache.json
 logs/
 
+# Demo files (temporary)
+.env.demo
+app/static/qr_code_demo.png
+.ngrok_token
+
 # Scrapy stuff:
 .scrapy
 

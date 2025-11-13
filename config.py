@@ -96,11 +96,32 @@ class TestingConfig(Config):
     RATELIMIT_ENABLED = False
 
 
+class DemoConfig(Config):
+    """Configuração para demonstrações (Mostra Tech)"""
+    DEBUG = False
+    TESTING = False
+
+    # Segurança ajustada para demo pública
+    SESSION_COOKIE_SECURE = False  # ngrok usa HTTPS mas o Flask serve HTTP local
+    SQLALCHEMY_ECHO = False  # Não poluir logs durante demo
+
+    # Rate limiting mais permissivo para demonstração
+    RATELIMIT_ENABLED = True
+    RATELIMIT_DEFAULT = "500 per hour, 100 per minute"  # Mais generoso para visitantes
+
+    # Logging
+    LOG_LEVEL = 'WARNING'  # Apenas erros importantes
+
+    # URL pública do ngrok (será preenchida pelo script)
+    DEMO_PUBLIC_URL = os.environ.get('DEMO_PUBLIC_URL', None)
+
+
 # Mapa de configurações
 config_map = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
     'testing': TestingConfig,
+    'demo': DemoConfig,
     'default': DevelopmentConfig
 }
 
