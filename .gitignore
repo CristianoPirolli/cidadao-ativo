@@ -65,6 +65,15 @@ db.sqlite3-journal
 instance/
 .webassets-cache
 
+# Cidadão Ativo specific
+app/uploads/*
+!app/uploads/.gitkeep
+!app/uploads/residence_proofs/
+app/uploads/residence_proofs/*
+!app/uploads/residence_proofs/.gitkeep
+app/data/municipios_cache.json
+logs/
+
 # Scrapy stuff:
 .scrapy
 
@@ -205,3 +214,5 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+.claude/
