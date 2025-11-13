@@ -1,23 +1,131 @@
 {% extends 'base.html' %}
+{% block title %}Entrar  Cidadao Ativo{% endblock %}
 {% block content %}
-<div class="row justify-content-center align-items-center" style="height: 80vh;">
-  <div class="col-12 col-md-6 col-lg-4">
-    <div class="card shadow-sm">
+<div class="row align-items-center justify-content-center g-4 login-grid">
+  <div class="col-lg-5">
+    <div class="card shadow-sm h-100 login-type-panel">
       <div class="card-body">
-        <h5 class="card-title text-center mb-4">Login</h5>
-        <form method="POST" action="/login">
-          <div class="mb-3">
-            <label for="username" class="form-label">Usuário</label>
-            <input type="text" class="form-control" id="username" name="username" required>
-          </div>
-          <div class="mb-3">
-            <label for="password" class="form-label">Senha</label>
-            <input type="password" class="form-control" id="password" name="password" required>
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Entrar</button>
-        </form>
+        <p class="text-uppercase small fw-semibold text-primary mb-1">Escolha seu acesso</p>
+        <h3 class="fw-bold mb-4 text-neutral-900">Quem está entrando agora?</h3>
+        <div class="login-type-selector">
+          <button type="button" class="login-type-option active" data-login-type="cidadao">
+            <i class="bi bi-person fs-3"></i>
+            <div>
+              <strong>Cidadão</strong>
+              <p class="mb-0 text-muted small">Acompanha os chamados enviados e avalia os atendimentos.</p>
+            </div>
+          </button>
+          <button type="button" class="login-type-option" data-login-type="orgao">
+            <i class="bi bi-building fs-3"></i>
+            <div>
+              <strong>Órgão público / Admin</strong>
+              <p class="mb-0 text-muted small">Gerencia demandas do município e aprova novos cadastros.</p>
+            </div>
+          </button>
+        </div>
+        <div class="mt-4 text-muted small d-flex align-items-center gap-2">
+          <i class="bi bi-shield-check text-success"></i>
+          <span>Ambiente seguro e auditado.</span>
+        </div>
       </div>
     </div>
   </div>
+  <div class="col-lg-5">
+    <div class="glass-card h-100">
+      <div class="mb-4">
+        <h2 class="fw-bold mb-1 text-primary" id="loginTitle">Entrar como cidadão</h2>
+        <p class="text-muted mb-0" id="loginSubtitle">Use seu CPF para acessar seu painel.</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('views.login') }}" id="loginForm" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="user_type_selected" id="user_type_selected" value="cidadao">
+
+        <div class="mb-3">
+          <label for="login_id" class="form-label fw-semibold" id="loginLabel">CPF</label>
+          <input
+            type="text"
+            class="form-control form-control-lg"
+            id="login_id"
+            name="login_id"
+            placeholder="Digite seu CPF"
+            required
+            autofocus>
+        </div>
+
+        <div class="mb-3">
+          <label for="password" class="form-label fw-semibold">Senha</label>
+          <input
+            type="password"
+            class="form-control form-control-lg"
+            id="password"
+            name="password"
+            placeholder="Digite sua senha"
+            required>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember">
+            <label class="form-check-label" for="remember">
+              Lembrar sessão
+            </label>
+          </div>
+          <a href="{{ url_for('views.register') }}" class="small fw-semibold text-primary">
+            Precisa criar uma conta?
+          </a>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2 fs-6">
+          Acessar painel
+        </button>
+      </form>
+    </div>
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const typeButtons = document.querySelectorAll('.login-type-option');
+    const typeInput = document.getElementById('user_type_selected');
+    const title = document.getElementById('loginTitle');
+    const subtitle = document.getElementById('loginSubtitle');
+    const label = document.getElementById('loginLabel');
+    const loginField = document.getElementById('login_id');
+
+    const typeConfig = {
+      cidadao: {
+        title: 'Entrar como cidadão',
+        subtitle: 'Use seu CPF para acessar seu painel.',
+        label: 'CPF',
+        placeholder: 'Digite seu CPF'
+      },
+      orgao: {
+        title: 'Entrar como órgão / admin',
+        subtitle: 'Use o e-mail institucional cadastrado.',
+        label: 'E-mail institucional',
+        placeholder: 'nome@orgaopublico.gov.br'
+      }
+    };
+
+    function applyType(type) {
+      const config = typeConfig[type] || typeConfig.cidadao;
+      typeInput.value = type;
+      title.textContent = config.title;
+      subtitle.textContent = config.subtitle;
+      label.textContent = config.label;
+      loginField.placeholder = config.placeholder;
+      typeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.loginType === type));
+      loginField.focus();
+    }
+
+    typeButtons.forEach(btn => {
+      btn.addEventListener('click', () => applyType(btn.dataset.loginType));
+    });
+
+    applyType(typeInput.value);
+  });
+</script>
 {% endblock %}

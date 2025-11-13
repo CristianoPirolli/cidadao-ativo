@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %}Administracao  Cidadao Ativo{% endblock %}
+{% block content %}
+<div class="dashboard-header">
+  <div>
+    <h2 class="mb-1">Painel administrativo</h2>
+    <p class="text-muted mb-0">Controle de acessos da plataforma e acompanhamento de cadastros.</p>
+  </div>
+</div>
+
+<div class="metric-grid mb-4">
+  <div class="metric-card">
+    <span class="metric-label">Pendentes</span>
+    <div class="metric-value">{{ stats.pending }}</div>
+    <span class="metric-hint">Solicitacoes aguardando aprovacao</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Aprovados</span>
+    <div class="metric-value">{{ stats.approved }}</div>
+    <span class="metric-hint">Usuarios ativos</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Cidadaos</span>
+    <div class="metric-value">{{ stats.citizens }}</div>
+    <span class="metric-hint">Contas de moradores</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Orgaos</span>
+    <div class="metric-value">{{ stats.agencies }}</div>
+    <span class="metric-hint">Instituicoes parceiras</span>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body d-flex flex-wrap align-items-center gap-3">
+    <h5 class="card-title mb-0">Filtrar usuarios</h5>
+    <div class="btn-group">
+      <a href="{{ url_for('views.dashboard_admin', filter='pending') }}" class="btn btn-outline-primary {% if filter_type == 'pending' %}active{% endif %}">
+        Pendentes ({{ stats.pending }})
+      </a>
+      <a href="{{ url_for('views.dashboard_admin', filter='approved') }}" class="btn btn-outline-primary {% if filter_type == 'approved' %}active{% endif %}">
+        Aprovados ({{ stats.approved }})
+      </a>
+      <a href="{{ url_for('views.dashboard_admin', filter='all') }}" class="btn btn-outline-primary {% if filter_type == 'all' %}active{% endif %}">
+        Todos ({{ stats.total }})
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title mb-3">
+      {% if filter_type == 'pending' %}
+        Usuarios aguardando aprovacao
+      {% elif filter_type == 'approved' %}
+        Usuarios aprovados
+      {% else %}
+        Todos os usuarios
+      {% endif %}
+    </h5>
+
+    {% if users %}
+      <div class="table-responsive">
+        <table class="table align-middle table-stack">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Email</th>
+              <th>Tipo</th>
+              <th>Documento</th>
+              <th>Telefone</th>
+              <th>Status</th>
+              <th>Criado em</th>
+              <th class="text-end">Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td class="fw-semibold text-primary" data-label="ID">{{ user.id }}</td>
+              <td data-label="Nome">{{ user.name }}</td>
+              <td data-label="Email">{{ user.email or '-' }}</td>
+              <td data-label="Tipo">
+                {% if user.is_admin %}
+                  <span class="badge bg-danger">Admin</span>
+                {% elif user.user_type == 'orgao' %}
+                  <span class="badge bg-info text-dark">Orgao</span>
+                {% else %}
+                  <span class="badge bg-primary">Cidadao</span>
+                {% endif %}
+              </td>
+              <td data-label="Documento">{{ user.cpf or user.cnpj or '-' }}</td>
+              <td data-label="Telefone">{{ user.telefone or '-' }}</td>
+              <td data-label="Status">
+                {% if user.is_approved %}
+                  <span class="badge bg-success">Aprovado</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Pendente</span>
+                {% endif %}
+                {% if not user.is_active %}
+                  <span class="badge bg-secondary">Inativo</span>
+                {% endif %}
+              </td>
+              <td data-label="Criado em">{{ user.created_at | format_datetime_sp }}</td>
+              <td class="text-end" data-label="Acoes">
+                <div class="btn-group btn-group-sm">
+                  {% if not user.is_approved and user.is_active %}
+                    <form method="POST" action="{{ url_for('views.approve_user', user_id=user.id) }}" class="d-inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-success" onclick="return confirm('Aprovar {{ user.name }}?')">
+                        Aprovar
+                      </button>
+                    </form>
+                  {% endif %}
+
+                  {% if user.is_active and not user.is_admin %}
+                    <form method="POST" action="{{ url_for('views.reject_user', user_id=user.id) }}" class="d-inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Desativar {{ user.name }}?')">
+                        Desativar
+                      </button>
+                    </form>
+                  {% endif %}
+
+                  {% if not user.is_active %}
+                    <form method="POST" action="{{ url_for('views.activate_user', user_id=user.id) }}" class="d-inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Reativar {{ user.name }}?')">
+                        Reativar
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="datatable-empty">
+        <i class="bi bi-people fs-1 d-block mb-3"></i>
+        <p class="mb-2 fw-semibold">Nenhum registro encontrado com o filtro atual.</p>
+        <p class="text-muted mb-0">Altere o filtro acima para visualizar outros usuarios.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

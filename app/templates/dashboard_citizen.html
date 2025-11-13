@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Meus chamados  Cidadao Ativo{% endblock %}
+{% block content %}
+<div class="dashboard-header">
+  <div>
+    <h2 class="mb-1">Meus chamados</h2>
+    <p class="text-muted mb-0">Acompanhe seus registros e acompanhe o atendimento feito pelo orgao responsavel.</p>
+  </div>
+  <a href="{{ url_for('views.denuncia') }}" class="btn btn-primary btn-lg d-flex align-items-center gap-2">
+    <i class="bi bi-plus-circle"></i>
+    Novo chamado
+  </a>
+</div>
+
+<div class="metric-grid mb-4">
+  <div class="metric-card">
+    <span class="metric-label text-uppercase">Total registrados</span>
+    <div class="metric-value">{{ stats.total }}</div>
+    <span class="metric-hint">Chamados enviados por voce</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label text-uppercase">Abertos</span>
+    <div class="metric-value">{{ stats.aberto }}</div>
+    <span class="metric-hint">Aguardando analise do orgao</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label text-uppercase">Em andamento</span>
+    <div class="metric-value">{{ stats.em_andamento }}</div>
+    <span class="metric-hint">Equipe em tratativa</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label text-uppercase">Concluidos</span>
+    <div class="metric-value">{{ stats.concluido }}</div>
+    <span class="metric-hint">Finalizados e aguardando avaliacao</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+      <h5 class="card-title mb-0">Historico de chamados</h5>
+      <span class="filter-chip">
+        <i class="bi bi-lightning-charge"></i>
+        Atualizado automaticamente
+      </span>
+    </div>
+
+    {% if reports %}
+      <div class="table-responsive">
+        <table class="table align-middle table-stack">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Titulo</th>
+              <th scope="col">Categoria</th>
+              <th scope="col" class="status-column">Status</th>
+              <th scope="col">Criado em</th>
+              <th scope="col" class="text-end">Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for report in reports %}
+            <tr>
+              <td class="fw-semibold text-primary" data-label="ID">#{{ report.id }}</td>
+              <td data-label="Titulo">{{ report.title }}</td>
+              <td data-label="Categoria">
+                <span class="badge bg-light text-primary fw-semibold">
+                  <i class="bi bi-tag"></i> {{ report.category }}
+                </span>
+              </td>
+              <td data-label="Status">
+                <span class="status-dot {{ report.status }}"></span>
+                <span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span>
+              </td>
+              <td data-label="Criado em">{{ report.created_at | format_datetime_sp }}</td>
+              <td class="text-end" data-label="Acoes">
+                <a href="{{ url_for('views.report_detail', report_id=report.id) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
+                  <i class="bi bi-eye"></i> Detalhes
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="datatable-empty">
+        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+        <p class="mb-2 fw-semibold text-neutral-700">Voce ainda nao registrou nenhum chamado.</p>
+        <p class="text-muted mb-3">Relate um problema da sua cidade e acompanhe o andamento do atendimento.</p>
+        <a href="{{ url_for('views.denuncia') }}" class="btn btn-primary">
+          <i class="bi bi-plus-circle"></i> Registrar primeiro chamado
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
