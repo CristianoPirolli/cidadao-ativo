@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Bem-vindo ao Cidadão Ativo{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+
+    .welcome-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+
+    .welcome-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        padding: 3rem 2rem;
+        max-width: 800px;
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    .welcome-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .welcome-title {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 0.5rem;
+    }
+
+    .welcome-subtitle {
+        font-size: 1.2rem;
+        color: #666;
+        margin-bottom: 2rem;
+    }
+
+    .welcome-description {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #444;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .feature-card {
+        background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: transform 0.3s, box-shadow 0.3s;
+        border: 2px solid transparent;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+        border-color: #667eea;
+    }
+
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .feature-title {
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    .feature-text {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 3rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .btn-primary-custom {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        padding: 1rem 3rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+        border-radius: 50px;
+        transition: all 0.3s;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary-custom:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        color: white;
+    }
+
+    .btn-secondary-custom {
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+        padding: 1rem 3rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+        border-radius: 50px;
+        transition: all 0.3s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-secondary-custom:hover {
+        background: #667eea;
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .demo-badge {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        display: inline-block;
+        margin-bottom: 1rem;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.8;
+        }
+    }
+
+    .info-box {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 1rem 1.5rem;
+        border-radius: 10px;
+        margin: 2rem 0;
+    }
+
+    .info-box strong {
+        color: #667eea;
+    }
+
+    @media (max-width: 768px) {
+        .welcome-title {
+            font-size: 2rem;
+        }
+
+        .welcome-subtitle {
+            font-size: 1rem;
+        }
+
+        .welcome-card {
+            padding: 2rem 1.5rem;
+        }
+
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-primary-custom,
+        .btn-secondary-custom {
+            width: 100%;
+            text-align: center;
+        }
+    }
+
+    /* Esconder navbar padrão para landing page */
+    nav.navbar {
+        display: none;
+    }
+
+    footer {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-container">
+    <div class="welcome-card">
+        <div class="welcome-header">
+            <div class="demo-badge">
+                🎯 Mostra Tech 2025
+            </div>
+            <h1 class="welcome-title">
+                🏛️ Cidadão Ativo
+            </h1>
+            <p class="welcome-subtitle">
+                Sistema de Denúncias Comunitárias
+            </p>
+        </div>
+
+        <p class="welcome-description">
+            <strong>Conectando cidadãos aos órgãos públicos</strong> de forma transparente e eficiente.
+            Faça denúncias, acompanhe o progresso e ajude a melhorar sua comunidade!
+        </p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📍</div>
+                <div class="feature-title">Geolocalização</div>
+                <div class="feature-text">
+                    Marque a localização exata do problema no mapa
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📸</div>
+                <div class="feature-title">Fotos e Evidências</div>
+                <div class="feature-text">
+                    Envie fotos para comprovar a denúncia
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">👁️</div>
+                <div class="feature-title">Acompanhamento</div>
+                <div class="feature-text">
+                    Veja o status em tempo real da sua denúncia
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Seguro e Confiável</div>
+                <div class="feature-text">
+                    Seus dados protegidos e validação rigorosa
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>💡 Como funciona?</strong><br>
+            1. Cadastre-se como cidadão<br>
+            2. Aguarde aprovação do seu município<br>
+            3. Crie denúncias com localização e fotos<br>
+            4. Acompanhe todo o processo até a resolução
+        </div>
+
+        <div class="action-buttons">
+            <a href="{{ url_for('views.register') }}" class="btn-primary-custom">
+                ✨ Fazer Cadastro
+            </a>
+            <a href="{{ url_for('views.login') }}" class="btn-secondary-custom">
+                🔑 Já tenho conta
+            </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem; color: #999; font-size: 0.9rem;">
+            <p>
+                <strong>Tipos de usuários:</strong><br>
+                👤 Cidadão | 🏢 Órgão Público | 👨‍💼 Administrador
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

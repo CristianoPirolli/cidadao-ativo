@@ -31,10 +31,11 @@ views_bp = Blueprint('views', __name__)
 
 @views_bp.route('/')
 def index():
-    """Pagina inicial - redireciona para login ou dashboard"""
+    """Pagina inicial - mostra boas-vindas ou redireciona para dashboard"""
     if current_user.is_authenticated:
         return redirect(url_for('views.dashboard'))
-    return redirect(url_for('views.login'))
+    # Mostra página de boas-vindas para visitantes não autenticados
+    return render_template('welcome.html')
 
 @views_bp.route('/denuncia')
 @login_required
@@ -371,6 +372,25 @@ def view_residence_proof(user_id):
     filename = os.path.basename(citizen.residence_proof_path)
 
     return send_from_directory(file_dir, filename)
+
+@views_bp.route('/qr-demo')
+def qr_demo():
+    """Pagina de demonstracao com QR Code para mostra tech"""
+    import os
+    from flask import send_from_directory
+
+    # Verifica se estamos em modo demo
+    demo_url = os.environ.get('DEMO_PUBLIC_URL', None)
+
+    # Caminho do QR Code
+    qr_code_path = os.path.join(current_app.root_path, 'static', 'qr_code_demo.png')
+    qr_code_exists = os.path.exists(qr_code_path)
+
+    return render_template(
+        'qr_demo.html',
+        demo_url=demo_url,
+        qr_code_exists=qr_code_exists
+    )
 
 @views_bp.route('/logout')
 @login_required
