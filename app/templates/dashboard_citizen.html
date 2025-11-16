@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}Meus chamados  Cidadao Ativo{% endblock %}
+{% block title %}Meus chamados - Cidadão Ativo{% endblock %}
 {% block content %}
 <div class="dashboard-header">
   <div>
     <h2 class="mb-1">Meus chamados</h2>
-    <p class="text-muted mb-0">Acompanhe seus registros e acompanhe o atendimento feito pelo orgao responsavel.</p>
+    <p class="text-muted mb-0">Acompanhe seus registros e acompanhe o atendimento feito pelo órgão responsável.</p>
   </div>
   <a href="{{ url_for('views.denuncia') }}" class="btn btn-primary btn-lg d-flex align-items-center gap-2">
     <i class="bi bi-plus-circle"></i>
@@ -16,12 +16,12 @@
   <div class="metric-card">
     <span class="metric-label text-uppercase">Total registrados</span>
     <div class="metric-value">{{ stats.total }}</div>
-    <span class="metric-hint">Chamados enviados por voce</span>
+    <span class="metric-hint">Chamados enviados por você</span>
   </div>
   <div class="metric-card">
     <span class="metric-label text-uppercase">Abertos</span>
     <div class="metric-value">{{ stats.aberto }}</div>
-    <span class="metric-hint">Aguardando analise do orgao</span>
+    <span class="metric-hint">Aguardando análise do órgão</span>
   </div>
   <div class="metric-card">
     <span class="metric-label text-uppercase">Em andamento</span>
@@ -29,16 +29,16 @@
     <span class="metric-hint">Equipe em tratativa</span>
   </div>
   <div class="metric-card">
-    <span class="metric-label text-uppercase">Concluidos</span>
+    <span class="metric-label text-uppercase">Concluídos</span>
     <div class="metric-value">{{ stats.concluido }}</div>
-    <span class="metric-hint">Finalizados e aguardando avaliacao</span>
+    <span class="metric-hint">Finalizados e aguardando avaliação</span>
   </div>
 </div>
 
 <div class="card">
   <div class="card-body">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-      <h5 class="card-title mb-0">Historico de chamados</h5>
+      <h5 class="card-title mb-0">Histórico de chamados</h5>
       <span class="filter-chip">
         <i class="bi bi-lightning-charge"></i>
         Atualizado automaticamente
@@ -51,18 +51,18 @@
           <thead>
             <tr>
               <th scope="col">ID</th>
-              <th scope="col">Titulo</th>
+              <th scope="col">Título</th>
               <th scope="col">Categoria</th>
               <th scope="col" class="status-column">Status</th>
               <th scope="col">Criado em</th>
-              <th scope="col" class="text-end">Acoes</th>
+              <th scope="col" class="text-end">Ações</th>
             </tr>
           </thead>
           <tbody>
             {% for report in reports %}
             <tr>
               <td class="fw-semibold text-primary" data-label="ID">#{{ report.id }}</td>
-              <td data-label="Titulo">{{ report.title }}</td>
+              <td data-label="Título">{{ report.title }}</td>
               <td data-label="Categoria">
                 <span class="badge bg-light text-primary fw-semibold">
                   <i class="bi bi-tag"></i> {{ report.category }}
@@ -73,7 +73,7 @@
                 <span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span>
               </td>
               <td data-label="Criado em">{{ report.created_at | format_datetime_sp }}</td>
-              <td class="text-end" data-label="Acoes">
+              <td class="text-end" data-label="Ações">
                 <a href="{{ url_for('views.report_detail', report_id=report.id) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
                   <i class="bi bi-eye"></i> Detalhes
                 </a>
@@ -86,7 +86,7 @@
     {% else %}
       <div class="datatable-empty">
         <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-        <p class="mb-2 fw-semibold text-neutral-700">Voce ainda nao registrou nenhum chamado.</p>
+        <p class="mb-2 fw-semibold text-neutral-700">Você ainda não registrou nenhum chamado.</p>
         <p class="text-muted mb-3">Relate um problema da sua cidade e acompanhe o andamento do atendimento.</p>
         <a href="{{ url_for('views.denuncia') }}" class="btn btn-primary">
           <i class="bi bi-plus-circle"></i> Registrar primeiro chamado

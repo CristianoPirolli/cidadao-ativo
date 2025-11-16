@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
-{% block title %}Painel do orgao  Cidadao Ativo{% endblock %}
+{% block title %}Painel do órgão - Cidadão Ativo{% endblock %}
 {% block content %}
 <div class="dashboard-header">
   <div>
-    <h2 class="mb-1">Gestao de chamados</h2>
+    <h2 class="mb-1">Gestão de chamados</h2>
     <p class="text-muted mb-0">
       {{ current_user.orgao_nome or current_user.name }}  {{ current_user.municipio_nome }}/{{ current_user.municipio_uf }}
     </p>
@@ -11,7 +11,7 @@
   <div class="d-flex align-items-center gap-2">
     <span class="filter-chip">
       <i class="bi bi-people"></i>
-      {{ stats.cidadaos_pendentes }} cidadao(aos) aguardando aprovacao
+      {{ stats.cidadaos_pendentes }} cidadão(s) aguardando aprovação
     </span>
   </div>
 </div>
@@ -20,12 +20,12 @@
   <div class="metric-card">
     <span class="metric-label">Chamados totais</span>
     <div class="metric-value">{{ stats.total }}</div>
-    <span class="metric-hint">Recebidos para este municipio</span>
+    <span class="metric-hint">Recebidos para este município</span>
   </div>
   <div class="metric-card">
     <span class="metric-label">Abertos</span>
     <div class="metric-value">{{ stats.aberto }}</div>
-    <span class="metric-hint">Aguardando analise inicial</span>
+    <span class="metric-hint">Aguardando análise inicial</span>
   </div>
   <div class="metric-card">
     <span class="metric-label">Em andamento</span>
@@ -33,9 +33,33 @@
     <span class="metric-hint">Equipes atuando no local</span>
   </div>
   <div class="metric-card">
-    <span class="metric-label">Concluidos</span>
+    <span class="metric-label">Concluídos</span>
     <div class="metric-value">{{ stats.concluido }}</div>
     <span class="metric-hint">Finalizados e comunicados</span>
+  </div>
+</div>
+
+<div class="metric-grid mb-4">
+  <div class="metric-card">
+    <span class="metric-label">Tempo médio de resolução</span>
+    <div class="metric-value">
+      {{ resolution_metrics.average_seconds | format_duration }}
+    </div>
+    <span class="metric-hint">
+      Base em {{ resolution_metrics.resolved_count }} chamados concluídos
+    </span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Chamados resolvidos</span>
+    <div class="metric-value">
+      {{ resolution_metrics.resolved_count or 0 }}
+    </div>
+    <span class="metric-hint">Histórico no município</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Regiões críticas mapeadas</span>
+    <div class="metric-value">{{ hot_regions | length }}</div>
+    <span class="metric-hint">Top {{ hot_regions | length }} agrupamentos</span>
   </div>
 </div>
 
@@ -44,7 +68,7 @@
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
-        <h5 class="card-title mb-0">Cadastros aguardando aprovacao</h5>
+        <h5 class="card-title mb-0">Cadastros aguardando aprovação</h5>
         <p class="text-muted mb-0">Valide os moradores para liberar o acesso a plataforma.</p>
       </div>
       <button class="btn btn-outline-warning btn-sm" data-bs-toggle="collapse" data-bs-target="#pendingCitizens">
@@ -60,10 +84,10 @@
               <th>Nome</th>
               <th>CPF</th>
               <th>Telefone</th>
-              <th>Municipio</th>
+              <th>Município</th>
               <th>Comprovante</th>
               <th>Solicitado em</th>
-              <th class="text-end">Acoes</th>
+              <th class="text-end">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -72,10 +96,10 @@
               <td class="fw-semibold" data-label="Nome">{{ citizen.name }}</td>
               <td data-label="CPF">{{ citizen.cpf or '-' }}</td>
               <td data-label="Telefone">{{ citizen.telefone or '-' }}</td>
-              <td data-label="Municipio">{{ citizen.municipio_origem_nome }}/{{ citizen.municipio_origem_uf }}</td>
+              <td data-label="Município">{{ citizen.municipio_origem_nome }}/{{ citizen.municipio_origem_uf }}</td>
               <td data-label="Comprovante">{{ citizen.residence_proof_type or '-' }}</td>
               <td data-label="Solicitado em">{{ citizen.created_at | format_datetime_sp }}</td>
-              <td class="text-end" data-label="Acoes">
+              <td class="text-end" data-label="Ações">
                 <div class="btn-group btn-group-sm">
                   {% if citizen.residence_proof_path %}
                     <a href="{{ url_for('views.view_residence_proof', user_id=citizen.id) }}" class="btn btn-outline-secondary" title="Ver comprovante" target="_blank">
@@ -111,7 +135,7 @@
             'aberto': 'Abertos',
             'visualizado': 'Visualizados',
             'em_andamento': 'Em andamento',
-            'concluido': 'Concluidos',
+            'concluido': 'Concluídos',
             'avaliado': 'Avaliados',
             'rejeitado': 'Rejeitados'
           } %}
@@ -125,9 +149,9 @@
         <select class="form-select" id="category" name="category" onchange="this.form.submit()">
           {% set categories = {
             '': 'Todas',
-            'iluminacao': 'Iluminacao',
-            'vias': 'Vias e transito',
-            'agua_esgoto': 'Agua e esgoto',
+            'iluminacao': 'Iluminação',
+            'vias': 'Vias e trânsito',
+            'agua_esgoto': 'Água e esgoto',
             'limpeza': 'Limpeza urbana',
             'outros': 'Outros'
           } %}
@@ -148,15 +172,44 @@
 <div class="card mb-4">
   <div class="card-body">
     <h5 class="card-title mb-3">Mapa de chamados</h5>
-    <div id="agency-map" class="agency-map {% if not map_reports %}d-flex align-items-center justify-content-center text-muted bg-light{% endif %}">
-      {% if not map_reports %}
-        <div class="text-center px-3">
-          <i class="bi bi-geo-alt mb-2 fs-4 d-block"></i>
-          <p class="mb-0">Nenhum chamado georreferenciado para exibir no mapa.</p>
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div id="agency-map" class="agency-map {% if not map_reports %}d-flex align-items-center justify-content-center text-muted bg-light{% endif %}">
+          {% if not map_reports %}
+            <div class="text-center px-3">
+              <i class="bi bi-geo-alt mb-2 fs-4 d-block"></i>
+              <p class="mb-0">Nenhum chamado georreferenciado para exibir no mapa.</p>
+            </div>
+          {% endif %}
         </div>
-      {% endif %}
+      </div>
+      <div class="col-lg-4">
+        <div class="hot-regions-panel border rounded p-3 h-100 d-flex flex-column">
+          <h6 class="mb-3">Regiões mais críticas</h6>
+          {% if hot_regions %}
+            <ul class="list-unstyled mb-0 flex-grow-1">
+              {% for region in hot_regions %}
+                <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                  <div>
+                    <small class="d-block text-muted">Coord.</small>
+                    <span class="fw-semibold">{{ region.label }}</span>
+                  </div>
+                  <span class="badge bg-danger rounded-pill">
+                    {{ region.count }} chamados
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">Sem regiões críticas identificadas.</p>
+          {% endif %}
+          <small class="text-muted mt-3">
+            Dados calculados com base em todos os chamados do município.
+          </small>
+        </div>
+      </div>
     </div>
-    <small class="text-muted d-block mt-2">
+    <small class="text-muted d-block mt-3">
       Limite aplicado: {{ current_user.municipio_nome }}/{{ current_user.municipio_uf }}
     </small>
   </div>
@@ -171,29 +224,29 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Titulo</th>
+              <th>Título</th>
               <th>Categoria</th>
               <th>Denunciante</th>
               <th>Status</th>
               <th>Registrado em</th>
-              <th>Responsavel</th>
-              <th class="text-end">Acoes</th>
+              <th>Responsável</th>
+              <th class="text-end">Ações</th>
             </tr>
           </thead>
           <tbody>
             {% for report in reports %}
             <tr class="{% if not report.viewed_at %}table-warning{% endif %}">
               <td class="fw-semibold text-primary" data-label="ID">#{{ report.id }}</td>
-              <td data-label="Titulo">{{ report.title }}</td>
+              <td data-label="Título">{{ report.title }}</td>
               <td data-label="Categoria">{{ report.category }}</td>
-              <td data-label="Denunciante">{{ report.user.name if report.user else 'Anonimo' }}</td>
+              <td data-label="Denunciante">{{ report.user.name if report.user else 'Anônimo' }}</td>
               <td data-label="Status">
                 <span class="status-dot {{ report.status }}"></span>
                 <span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span>
               </td>
               <td data-label="Registrado em">{{ report.created_at | format_datetime_sp }}</td>
-              <td data-label="Responsavel">{{ report.assigned_user.name if report.assigned_user else 'Nao atribuido' }}</td>
-              <td class="text-end" data-label="Acoes">
+              <td data-label="Responsável">{{ report.assigned_user.name if report.assigned_user else 'Não atribuído' }}</td>
+              <td class="text-end" data-label="Ações">
                 <a href="{{ url_for('views.report_detail', report_id=report.id) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
                   <i class="bi bi-eye"></i> Detalhes
                 </a>
@@ -224,11 +277,11 @@
       <form id="rejectForm" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-body">
-          <p>Voce esta prestes a rejeitar o cadastro de <strong id="citizenNameReject"></strong>.</p>
+          <p>Você está prestes a rejeitar o cadastro de <strong id="citizenNameReject"></strong>.</p>
           <div class="mb-3">
-            <label for="rejection_reason" class="form-label">Motivo da rejeicao</label>
+            <label for="rejection_reason" class="form-label">Motivo da rejeição</label>
             <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="3" required></textarea>
-            <small class="text-muted">O motivo sera enviado por email ao cidadao.</small>
+            <small class="text-muted">O motivo será enviado por email ao cidadão.</small>
           </div>
         </div>
         <div class="modal-footer">
@@ -247,6 +300,7 @@
     reports: {{ map_reports|tojson }},
     bounds: {{ map_bounds|tojson if map_bounds else 'null' }},
     center: {{ map_center|tojson if map_center else 'null' }},
+    heatPoints: {{ heat_points|tojson }},
     municipioLabel: "{{ (current_user.municipio_nome ~ '/' ~ current_user.municipio_uf)|e }}"
   };
 

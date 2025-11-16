@@ -5,6 +5,7 @@ Sistema usa UTC no banco de dados e converte para America/Sao_Paulo (UTC-3) na e
 """
 
 from datetime import datetime
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 
@@ -116,3 +117,29 @@ def format_datetime_sp(utc_datetime, format_str='%d/%m/%Y %H:%M'):
 
     sp_datetime = to_sao_paulo(utc_datetime)
     return sp_datetime.strftime(format_str)
+
+
+def format_duration(seconds: Optional[float]) -> str:
+    """
+    Formata um tempo em segundos para uma string legível (dias, horas, minutos).
+    """
+    if seconds is None:
+        return '-'
+
+    base = max(int(round(seconds)), 0)
+    days, remainder = divmod(base, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes = remainder // 60
+
+    parts = []
+    if days:
+        parts.append(f"{days} dia{'s' if days != 1 else ''}")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}min")
+
+    if not parts:
+        parts.append("menos de 1 min")
+
+    return ' '.join(parts)

@@ -69,8 +69,9 @@ def create_app(config_name='development'):
         return User.query.get(int(user_id))
 
     # Registrar filtros Jinja2 customizados
-    from app.utils.timezone import format_datetime_sp
+    from app.utils.timezone import format_datetime_sp, format_duration
     app.jinja_env.filters['format_datetime_sp'] = format_datetime_sp
+    app.jinja_env.filters['format_duration'] = format_duration
 
     # Configurar logging
     if not app.debug:
@@ -122,7 +123,7 @@ def create_app(config_name='development'):
         password = input("Senha: ")
 
         if User.query.filter_by(email=email).first():
-            print("[ERRO] Este email ja esta cadastrado")
+            print("[ERRO] Este email já está cadastrado")
             return
 
         admin = User(
@@ -153,7 +154,7 @@ def create_app(config_name='development'):
         password = "admin123"  # ALTERAR EM PRODUÇÃO!
 
         if User.query.filter_by(email=email).first():
-            print("[ERRO] Admin desenvolvedor ja existe!")
+            print("[ERRO] Admin desenvolvedor já existe!")
             existing = User.query.filter_by(email=email).first()
             print(f"   Email: {existing.email}")
             print(f"   Nome: {existing.name}")
@@ -177,7 +178,7 @@ def create_app(config_name='development'):
         print(f"   Senha: {password}")
         print(f"   Acesso: http://localhost:5000/login")
         print("")
-        print("[AVISO] IMPORTANTE: Altere a senha apos o primeiro login!")
+        print("[AVISO] IMPORTANTE: Altere a senha após o primeiro login!")
 
     # Handler de erros
     @app.errorhandler(404)
