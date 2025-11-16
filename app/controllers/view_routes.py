@@ -54,7 +54,7 @@ def dashboard():
     elif current_user.is_agency:
         return redirect(url_for('views.dashboard_agency'))
     else:
-        flash('Tipo de usuario nao reconhecido', 'error')
+        flash('Tipo de usuário não reconhecido', 'error')
         return redirect(url_for('views.index'))
 
 @views_bp.route('/dashboard/cidadao')
@@ -62,7 +62,7 @@ def dashboard():
 def dashboard_citizen():
     """Dashboard do cidadao - visualiza seus proprios chamados"""
     if not current_user.is_citizen:
-        flash('Acesso negado. Area exclusiva para cidadaos.', 'error')
+        flash('Acesso negado. Área exclusiva para cidadãos.', 'error')
         return redirect(url_for('views.dashboard'))
 
     try:
@@ -80,9 +80,9 @@ def dashboard_citizen():
 @views_bp.route('/dashboard/orgao')
 @login_required
 def dashboard_agency():
-    """Dashboard do orgao - visualiza chamados e cidadaos do seu municipio"""
+    """Dashboard do órgão - visualiza chamados e cidadãos do seu município"""
     if not current_user.is_agency:
-        flash('Acesso negado. Area exclusiva para orgaos competentes.', 'error')
+        flash('Acesso negado. Área exclusiva para órgãos competentes.', 'error')
         return redirect(url_for('views.dashboard'))
 
     status_filter = request.args.get('status', None)
@@ -147,6 +147,9 @@ def dashboard_agency():
         map_reports=map_reports,
         map_bounds=map_bounds,
         map_center=map_center,
+        resolution_metrics=data.get('resolution_metrics', {}),
+        heat_points=data.get('heat_points', []),
+        hot_regions=data.get('hot_regions', []),
     )
 
 # Manter compatibilidade com rota antiga
@@ -207,7 +210,7 @@ def report_detail(report_id):
 
     # Verificar permissoes
     if current_user.is_citizen and report.user_id != current_user.id:
-        flash('Voce nao tem permissao para visualizar este chamado', 'error')
+        flash('Você não tem permissão para visualizar este chamado', 'error')
         return redirect(url_for('views.dashboard'))
 
     # Buscar historico
@@ -222,7 +225,7 @@ def report_detail(report_id):
             action='visualizado',
             old_status=report.status,
             new_status=report.status,
-            comment='Chamado visualizado pelo orgao responsavel'
+            comment='Chamado visualizado pelo órgão responsável'
         )
         db.session.add(history_entry)
         db.session.commit()
@@ -234,7 +237,7 @@ def report_detail(report_id):
 def dashboard_admin():
     """Dashboard do administrador - gerenciar usuarios"""
     if not current_user.is_admin:
-        flash('Acesso negado. Area exclusiva para administradores.', 'error')
+        flash('Acesso negado. Área exclusiva para administradores.', 'error')
         return redirect(url_for('views.dashboard'))
 
     filter_type = request.args.get('filter', 'pending')  # pending, approved, all
@@ -257,7 +260,7 @@ def dashboard_admin():
 def approve_user(user_id):
     """Aprova um usuario"""
     if not current_user.is_admin:
-        flash('Acesso negado. Area exclusiva para administradores.', 'error')
+        flash('Acesso negado. Área exclusiva para administradores.', 'error')
         return redirect(url_for('views.dashboard'))
 
     user = User.query.get_or_404(user_id)
@@ -267,7 +270,7 @@ def approve_user(user_id):
     except UserActionError as exc:
         flash(str(exc), 'error')
     else:
-        flash(f'Usuario {user.name} aprovado com sucesso!', 'success')
+        flash(f'Usuário {user.name} aprovado com sucesso!', 'success')
     return redirect(url_for('views.dashboard_admin'))
 
 @views_bp.route('/admin/reject/<int:user_id>', methods=['POST'])
@@ -275,7 +278,7 @@ def approve_user(user_id):
 def reject_user(user_id):
     """Rejeita/desativa um usuario"""
     if not current_user.is_admin:
-        flash('Acesso negado. Area exclusiva para administradores.', 'error')
+        flash('Acesso negado. Área exclusiva para administradores.', 'error')
         return redirect(url_for('views.dashboard'))
 
     user = User.query.get_or_404(user_id)
@@ -285,7 +288,7 @@ def reject_user(user_id):
     except UserActionError as exc:
         flash(str(exc), 'error')
     else:
-        flash(f'Usuario {user.name} desativado com sucesso!', 'success')
+        flash(f'Usuário {user.name} desativado com sucesso!', 'success')
     return redirect(url_for('views.dashboard_admin'))
 
 @views_bp.route('/admin/activate/<int:user_id>', methods=['POST'])
@@ -293,7 +296,7 @@ def reject_user(user_id):
 def activate_user(user_id):
     """Reativa um usuario"""
     if not current_user.is_admin:
-        flash('Acesso negado. Area exclusiva para administradores.', 'error')
+        flash('Acesso negado. Área exclusiva para administradores.', 'error')
         return redirect(url_for('views.dashboard'))
 
     user = User.query.get_or_404(user_id)
@@ -303,15 +306,15 @@ def activate_user(user_id):
     except UserActionError as exc:
         flash(str(exc), 'error')
     else:
-        flash(f'Usuario {user.name} reativado com sucesso!', 'success')
+        flash(f'Usuário {user.name} reativado com sucesso!', 'success')
     return redirect(url_for('views.dashboard_admin'))
 
 @views_bp.route('/orgao/aprovar-cidadao/<int:user_id>', methods=['POST'])
 @login_required
 def agency_approve_citizen(user_id):
-    """Orgao aprova cadastro de cidadao"""
+    """Órgão aprova cadastro de cidadão"""
     if not current_user.is_agency:
-        flash('Acesso negado. Area exclusiva para orgaos.', 'error')
+        flash('Acesso negado. Área exclusiva para órgãos.', 'error')
         return redirect(url_for('views.dashboard'))
 
     citizen = User.query.get_or_404(user_id)
@@ -321,15 +324,15 @@ def agency_approve_citizen(user_id):
     except UserActionError as exc:
         flash(str(exc), 'error')
     else:
-        flash(f'Cidadao {citizen.name} aprovado com sucesso!', 'success')
+        flash(f'Cidadão {citizen.name} aprovado com sucesso!', 'success')
     return redirect(url_for('views.dashboard'))
 
 @views_bp.route('/orgao/rejeitar-cidadao/<int:user_id>', methods=['POST'])
 @login_required
 def agency_reject_citizen(user_id):
-    """Orgao rejeita cadastro de cidadao"""
+    """Órgão rejeita cadastro de cidadão"""
     if not current_user.is_agency:
-        flash('Acesso negado. Area exclusiva para orgaos.', 'error')
+        flash('Acesso negado. Área exclusiva para órgãos.', 'error')
         return redirect(url_for('views.dashboard'))
 
     citizen = User.query.get_or_404(user_id)
@@ -355,13 +358,13 @@ def view_residence_proof(user_id):
 
     citizen = User.query.get_or_404(user_id)
 
-    # Orgaos so podem ver comprovantes de cidadaos do seu municipio
+    # Órgãos só podem ver comprovantes de cidadãos do seu município
     if current_user.is_agency and citizen.municipio_origem_id != current_user.municipio_ibge_id:
-        flash('Voce so pode visualizar comprovantes de cidadaos do seu municipio', 'error')
+        flash('Você só pode visualizar comprovantes de cidadãos do seu município', 'error')
         return redirect(url_for('views.dashboard'))
 
     if not citizen.residence_proof_path:
-        flash('Este cidadao nao possui comprovante de residencia', 'error')
+        flash('Este cidadão não possui comprovante de residência', 'error')
         return redirect(url_for('views.dashboard'))
 
     # Servir arquivo
@@ -397,5 +400,5 @@ def qr_demo():
 def logout():
     """Logout do usuario"""
     logout_user()
-    flash('Voce saiu da sua conta', 'info')
+    flash('Você saiu da sua conta', 'info')
     return redirect(url_for('views.index'))

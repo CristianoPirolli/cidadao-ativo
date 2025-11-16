@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional
+from collections import defaultdict
 
 from sqlalchemy import case, func
 
@@ -33,6 +34,59 @@ def _status_summary(query) -> Dict[str, int]:
 
     counts["total"] = total
     return counts
+
+
+def _compute_resolution_metrics(reports: Iterable[Report]) -> Dict[str, Optional[float]]:
+    """
+    Calcula o tempo médio de resolução considerando chamados concluídos.
+    """
+    resolved = [
+        report
+        for report in reports
+        if report.completed_at and report.created_at
+    ]
+
+    if not resolved:
+        return {"average_seconds": None, "resolved_count": 0}
+
+    total_seconds = sum(
+        (report.completed_at - report.created_at).total_seconds()
+        for report in resolved
+    )
+
+    return {
+        "average_seconds": total_seconds / len(resolved),
+        "resolved_count": len(resolved),
+    }
+
+
+def _build_heatmap_points(reports: Iterable[Report], precision: int = 3) -> List[Dict[str, object]]:
+    """
+    Agrupa chamados por proximidade geográfica para destacar regiões críticas.
+    """
+    clusters = defaultdict(lambda: {"sum_lat": 0.0, "sum_lng": 0.0, "count": 0})
+
+    for report in reports:
+        if report.lat is None or report.lng is None:
+            continue
+
+        key = (round(report.lat, precision), round(report.lng, precision))
+        cluster = clusters[key]
+        cluster["sum_lat"] += report.lat
+        cluster["sum_lng"] += report.lng
+        cluster["count"] += 1
+
+    points = []
+    for (rounded_lat, rounded_lng), values in clusters.items():
+        points.append({
+            "lat": values["sum_lat"] / values["count"],
+            "lng": values["sum_lng"] / values["count"],
+            "count": values["count"],
+            "label": f"{rounded_lat:.3f}, {rounded_lng:.3f}",
+        })
+
+    points.sort(key=lambda item: item["count"], reverse=True)
+    return points
 
 
 def get_citizen_dashboard_data(user: User) -> Dict[str, object]:
@@ -71,16 +125,29 @@ def get_agency_dashboard_data(
     ).order_by(User.created_at.desc())
     pending_citizens = citizens_query.all()
 
-    reports_query = Report.query.filter_by(municipio_ibge_id=municipio_id)
-    if status_filter:
-        reports_query = reports_query.filter_by(status=status_filter)
-    if category_filter:
-        reports_query = reports_query.filter_by(category=category_filter)
+    base_reports_query = Report.query.filter_by(municipio_ibge_id=municipio_id)
 
-    reports = reports_query.order_by(Report.created_at.asc()).all()
-
-    stats = _status_summary(Report.query.filter_by(municipio_ibge_id=municipio_id))
+    stats = _status_summary(base_reports_query)
     stats["cidadaos_pendentes"] = len(pending_citizens)
+
+    filtered_reports_query = base_reports_query
+    if status_filter:
+        filtered_reports_query = filtered_reports_query.filter_by(status=status_filter)
+    if category_filter:
+        filtered_reports_query = filtered_reports_query.filter_by(category=category_filter)
+
+    reports = filtered_reports_query.order_by(Report.created_at.asc()).all()
+
+    municipality_reports = (
+        Report.query
+        .filter_by(municipio_ibge_id=municipio_id)
+        .order_by(Report.created_at.asc())
+        .all()
+    )
+
+    resolution_metrics = _compute_resolution_metrics(municipality_reports)
+    heat_points = _build_heatmap_points(municipality_reports)
+    hot_regions = heat_points[:5]
 
     return {
         "reports": reports,
@@ -90,6 +157,9 @@ def get_agency_dashboard_data(
             "status": status_filter,
             "category": category_filter,
         },
+        "resolution_metrics": resolution_metrics,
+        "heat_points": heat_points,
+        "hot_regions": hot_regions,
     }
 
 
@@ -133,4 +203,3 @@ def get_admin_dashboard_data(admin: User, filter_type: str = "pending") -> Dict[
         "stats": stats,
         "filter_type": filter_type,
     }
-

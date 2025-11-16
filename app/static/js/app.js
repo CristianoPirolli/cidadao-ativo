@@ -262,7 +262,7 @@ async function initAdminPage() {
     <div class="border rounded p-3 mb-2">
       <div class="d-flex justify-content-between align-items-center">
         <div>
-          <strong>#${r.id} — ${r.title}</strong><br>
+          <strong>#${r.id} - ${r.title}</strong><br>
           <small>${r.category} • ${new Date(r.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</small>
           <div>Status: ${badgeForStatus(r.status)}</div>
         </div>
@@ -277,7 +277,10 @@ async function initAdminPage() {
 }
 
 function initAgencyDashboardMap(config) {
-  if (!config || !Array.isArray(config.reports) || !config.reports.length) {
+  const heatPoints = Array.isArray(config?.heatPoints) ? config.heatPoints : [];
+  const reportPoints = Array.isArray(config?.reports) ? config.reports : [];
+
+  if (!config || (!heatPoints.length && !reportPoints.length)) {
     return;
   }
 
@@ -287,33 +290,59 @@ function initAgencyDashboardMap(config) {
   }
 
   const defaultCenter = [-14.235004, -51.925282];
-  const center = config.center ? [config.center.lat, config.center.lng] : defaultCenter;
-  const zoom = config.center ? 12 : 5;
-  const map = initMap('agency-map', center, zoom);
+  let center = null;
+
+  if (config.center) {
+    center = [config.center.lat, config.center.lng];
+  } else if (heatPoints.length) {
+    center = [heatPoints[0].lat, heatPoints[0].lng];
+  }
+
+  const zoom = center ? 12 : 5;
+  const map = initMap('agency-map', center || defaultCenter, zoom);
+
+  const isMobile = window.innerWidth < 768;
+  const padding = isMobile ? [40, 40] : [20, 20];
 
   if (config.bounds && config.bounds.southWest && config.bounds.northEast) {
     const bounds = L.latLngBounds(
       [config.bounds.southWest.lat, config.bounds.southWest.lng],
       [config.bounds.northEast.lat, config.bounds.northEast.lng]
     );
-    // Aumentar padding em mobile para melhor visualização
-    const isMobile = window.innerWidth < 768;
-    const padding = isMobile ? [40, 40] : [20, 20];
-    map.fitBounds(bounds, { padding: padding });
+    map.fitBounds(bounds, { padding });
     map.setMaxBounds(bounds.pad(0.25));
+  } else if (heatPoints.length) {
+    const heatBounds = L.latLngBounds(heatPoints.map(point => [point.lat, point.lng]));
+    map.fitBounds(heatBounds, { padding });
+    map.setMaxBounds(heatBounds.pad(0.25));
   }
 
-  config.reports.forEach((report) => {
+  if (heatPoints.length) {
+    heatPoints.forEach((point) => {
+      const radius = Math.min(3000, 800 + point.count * 120);
+      const circle = L.circle([point.lat, point.lng], {
+        radius,
+        color: 'rgba(220, 53, 69, 0.8)',
+        fillColor: 'rgba(220, 53, 69, 0.25)',
+        weight: 1,
+        fillOpacity: 0.25,
+      }).addTo(map);
+      circle.bindTooltip(`${point.count} chamados próximos (${point.label})`, { direction: 'top' });
+    });
+  }
+
+  reportPoints.forEach((report) => {
     const marker = L.marker([report.lat, report.lng]).addTo(map);
     const popup = `
       <strong>#${report.id} - ${report.title}</strong><br>
-      <small>${report.category} • ${report.status}</small><br>
+      <small>${report.category} · ${report.status}</small><br>
       <small>Aberto em: ${report.created_at}</small><br>
       <a href="${report.detail_url}" class="mt-2 d-inline-block">Ver detalhes</a>
     `;
     marker.bindPopup(popup);
   });
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
   if (window.agencyMapConfig) {
