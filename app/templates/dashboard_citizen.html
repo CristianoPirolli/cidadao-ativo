@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
-{% block title %}Meus chamados - Cidadão Ativo{% endblock %}
+{% load custom_filters %}
+{% block title %}Chamados da sua cidade - Cidadão Ativo{% endblock %}
 {% block content %}
 <div class="dashboard-header">
   <div>
-    <h2 class="mb-1">Meus chamados</h2>
-    <p class="text-muted mb-0">Acompanhe seus registros e acompanhe o atendimento feito pelo órgão responsável.</p>
+    <h2 class="mb-1">Chamados da sua cidade</h2>
+    <p class="text-muted mb-0">Acompanhe todos os registros do seu município e o atendimento feito pelo órgão responsável.</p>
   </div>
-  <a href="{{ url_for('views.denuncia') }}" class="btn btn-primary btn-lg d-flex align-items-center gap-2">
+  <a href="{% url 'denuncia' %}" class="btn btn-primary btn-lg d-flex align-items-center gap-2">
     <i class="bi bi-plus-circle"></i>
     Novo chamado
   </a>
@@ -16,7 +17,7 @@
   <div class="metric-card">
     <span class="metric-label text-uppercase">Total registrados</span>
     <div class="metric-value">{{ stats.total }}</div>
-    <span class="metric-hint">Chamados enviados por você</span>
+    <span class="metric-hint">Chamados do seu município</span>
   </div>
   <div class="metric-card">
     <span class="metric-label text-uppercase">Abertos</span>
@@ -30,7 +31,7 @@
   </div>
   <div class="metric-card">
     <span class="metric-label text-uppercase">Concluídos</span>
-    <div class="metric-value">{{ stats.concluido }}</div>
+    <div class="metric-value">{{ stats.resolvido }}</div>
     <span class="metric-hint">Finalizados e aguardando avaliação</span>
   </div>
 </div>
@@ -38,7 +39,7 @@
 <div class="card">
   <div class="card-body">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-      <h5 class="card-title mb-0">Histórico de chamados</h5>
+      <h5 class="card-title mb-0">Histórico de chamados da cidade</h5>
       <span class="filter-chip">
         <i class="bi bi-lightning-charge"></i>
         Atualizado automaticamente
@@ -53,6 +54,7 @@
               <th scope="col">ID</th>
               <th scope="col">Título</th>
               <th scope="col">Categoria</th>
+              <th scope="col">Urgência</th>
               <th scope="col" class="status-column">Status</th>
               <th scope="col">Criado em</th>
               <th scope="col" class="text-end">Ações</th>
@@ -68,13 +70,31 @@
                   <i class="bi bi-tag"></i> {{ report.category }}
                 </span>
               </td>
+              <td data-label="Urgência">
+                <span class="badge bg-danger-subtle text-danger fw-semibold">
+                  <i class="bi bi-arrow-up-circle"></i>
+                  <span id="vote-count-{{ report.id }}">{{ report.urgency_votes_count }}</span> voto(s)
+                </span>
+              </td>
               <td data-label="Status">
                 <span class="status-dot {{ report.status }}"></span>
                 <span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span>
               </td>
               <td data-label="Criado em">{{ report.created_at | format_datetime_sp }}</td>
               <td class="text-end" data-label="Ações">
-                <a href="{{ url_for('views.report_detail', report_id=report.id) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
+                {% if report.user_id != user.id %}
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-1"
+                    onclick="voteUrgency({{ report.id }})"
+                    {% if report.id in voted_report_ids %}disabled{% endif %}
+                    id="vote-btn-{{ report.id }}"
+                  >
+                    <i class="bi bi-hand-thumbs-up"></i>
+                    {% if report.id in voted_report_ids %}Votado{% else %}Votar urgência{% endif %}
+                  </button>
+                {% endif %}
+                <a href="{% url 'report_detail' report.id %}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
                   <i class="bi bi-eye"></i> Detalhes
                 </a>
               </td>
@@ -86,13 +106,84 @@
     {% else %}
       <div class="datatable-empty">
         <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-        <p class="mb-2 fw-semibold text-neutral-700">Você ainda não registrou nenhum chamado.</p>
+        <p class="mb-2 fw-semibold text-neutral-700">Ainda não há chamados para o seu município.</p>
         <p class="text-muted mb-3">Relate um problema da sua cidade e acompanhe o andamento do atendimento.</p>
-        <a href="{{ url_for('views.denuncia') }}" class="btn btn-primary">
+        <a href="{% url 'denuncia' %}" class="btn btn-primary">
           <i class="bi bi-plus-circle"></i> Registrar primeiro chamado
         </a>
       </div>
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  async function voteUrgency(reportId) {
+    const button = document.getElementById(`vote-btn-${reportId}`);
+    if (button) {
+      button.disabled = true;
+    }
+
+    const success = (message) => {
+      if (typeof showNotification === 'function') {
+        showNotification(message, 'success');
+      } else {
+        alert(message);
+      }
+    };
+    const error = (message) => {
+      if (typeof showNotification === 'function') {
+        showNotification(message, 'danger');
+      } else {
+        alert(message);
+      }
+    };
+
+    if (!navigator.geolocation) {
+      error('Geolocalização não disponível no navegador.');
+      if (button) button.disabled = false;
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const response = await fetch(`/api/reports/${reportId}/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          body: JSON.stringify({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Não foi possível registrar o voto.');
+        }
+
+        const countEl = document.getElementById(`vote-count-${reportId}`);
+        if (countEl && typeof result.urgency_votes_count !== 'undefined') {
+          countEl.textContent = result.urgency_votes_count;
+        }
+        if (button) {
+          button.textContent = 'Votado';
+          button.classList.remove('btn-outline-danger');
+          button.classList.add('btn-secondary');
+          button.disabled = true;
+        }
+        success('Voto de urgência registrado.');
+      } catch (err) {
+        if (button) button.disabled = false;
+        error(err.message || 'Erro ao votar urgência.');
+      }
+    }, () => {
+      if (button) button.disabled = false;
+      error('Ative sua localização para votar urgência neste chamado.');
+    }, {
+      enableHighAccuracy: true,
+      timeout: 10000
+    });
+  }
+</script>
 {% endblock %}

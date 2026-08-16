@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% block title %}Painel do Dono — Cidadão Ativo{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+  <div>
+    <h2 class="mb-1">Painel do Dono da Plataforma</h2>
+    <p class="text-muted mb-0">Controle total sobre usuários, agências e configurações.</p>
+  </div>
+  <span class="badge bg-dark fs-6 px-3 py-2"><i class="bi bi-shield-fill-check me-1"></i>Dono SaaS</span>
+</div>
+
+<!-- Métricas globais -->
+<div class="metric-grid mb-4">
+  <div class="metric-card">
+    <span class="metric-label">Usuários</span>
+    <div class="metric-value">{{ platform_stats.total_users }}</div>
+    <span class="metric-hint">Total na plataforma</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Órgãos cadastrados</span>
+    <div class="metric-value">{{ platform_stats.total_agencies }}</div>
+    <span class="metric-hint">{{ platform_stats.pending_agencies }} aguardando aprovação</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Cidadãos</span>
+    <div class="metric-value">{{ platform_stats.total_citizens }}</div>
+    <span class="metric-hint">Contas de moradores</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Admins</span>
+    <div class="metric-value">{{ platform_stats.total_admins }}</div>
+    <span class="metric-hint">Administradores ativos</span>
+  </div>
+</div>
+
+<div class="metric-grid mb-4">
+  <div class="metric-card">
+    <span class="metric-label">Chamados totais</span>
+    <div class="metric-value">{{ platform_stats.total_reports }}</div>
+    <span class="metric-hint">Em toda a plataforma</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Chamados abertos</span>
+    <div class="metric-value text-warning">{{ platform_stats.open_reports }}</div>
+    <span class="metric-hint">Aguardando atendimento</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Resolvidos</span>
+    <div class="metric-value text-success">{{ platform_stats.resolved_reports }}</div>
+    <span class="metric-hint">Finalizados</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Municípios</span>
+    <div class="metric-value">{{ platform_stats.municipalities }}</div>
+    <span class="metric-hint">Com chamados registrados</span>
+  </div>
+</div>
+
+<!-- Abas de navegação -->
+<div class="card mb-4">
+  <div class="card-body d-flex flex-wrap align-items-center gap-3">
+    <h5 class="card-title mb-0">Gerenciar</h5>
+    <div class="btn-group">
+      <a href="{% url 'dashboard_owner' %}?tab=agencies"
+         class="btn btn-outline-primary {% if tab == 'agencies' %}active{% endif %}">
+        <i class="bi bi-building me-1"></i>Órgãos pendentes
+        {% if platform_stats.pending_agencies %}
+          <span class="badge bg-danger ms-1">{{ platform_stats.pending_agencies }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'dashboard_owner' %}?tab=all_agencies"
+         class="btn btn-outline-primary {% if tab == 'all_agencies' %}active{% endif %}">
+        <i class="bi bi-buildings me-1"></i>Todos os órgãos
+      </a>
+      <a href="{% url 'dashboard_owner' %}?tab=admins"
+         class="btn btn-outline-primary {% if tab == 'admins' %}active{% endif %}">
+        <i class="bi bi-person-gear me-1"></i>Administradores
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ABA: Órgãos pendentes de aprovação -->
+{% if tab == 'agencies' %}
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title mb-3">
+      <i class="bi bi-hourglass-split me-2 text-warning"></i>
+      Órgãos aguardando aprovação
+    </h5>
+    {% if pending_agencies %}
+      <div class="table-responsive">
+        <table class="table align-middle table-stack">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>CNPJ</th>
+              <th>Telefone</th>
+              <th>Município</th>
+              <th>Solicitado em</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for agency in pending_agencies %}
+            <tr>
+              <td class="fw-semibold" data-label="Nome">{{ agency.name }}</td>
+              <td data-label="E-mail">{{ agency.email|default:'-' }}</td>
+              <td data-label="CNPJ">{{ agency.cnpj|default:'-' }}</td>
+              <td data-label="Telefone">{{ agency.telefone|default:'-' }}</td>
+              <td data-label="Município">{{ agency.municipio_nome|default:'-' }}/{{ agency.municipio_uf|default:'-' }}</td>
+              <td data-label="Solicitado em">{{ agency.created_at|format_datetime_sp }}</td>
+              <td class="text-end" data-label="Ações">
+                <div class="btn-group btn-group-sm">
+                  <form method="POST" action="{% url 'approve_user' agency.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success"
+                            onclick="return confirm('Aprovar o órgão {{ agency.name }}?')">
+                      <i class="bi bi-check-lg me-1"></i>Aprovar
+                    </button>
+                  </form>
+                  <form method="POST" action="{% url 'reject_user' agency.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger"
+                            onclick="return confirm('Rejeitar o órgão {{ agency.name }}?')">
+                      <i class="bi bi-x-lg me-1"></i>Rejeitar
+                    </button>
+                  </form>
+                  <a href="{% url 'edit_user_by_admin' agency.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="datatable-empty">
+        <i class="bi bi-building-check fs-1 d-block mb-3 text-success"></i>
+        <p class="mb-2 fw-semibold">Nenhum órgão aguardando aprovação.</p>
+        <p class="text-muted mb-0">Todos os cadastros estão em dia.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ABA: Todos os órgãos -->
+{% elif tab == 'all_agencies' %}
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title mb-3">
+      <i class="bi bi-buildings me-2"></i>Todos os órgãos públicos
+    </h5>
+    {% if all_agencies %}
+      <div class="table-responsive">
+        <table class="table align-middle table-stack">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>CNPJ</th>
+              <th>Município</th>
+              <th>Status</th>
+              <th>Cadastrado em</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for agency in all_agencies %}
+            <tr>
+              <td class="fw-semibold" data-label="Nome">{{ agency.name }}</td>
+              <td data-label="E-mail">{{ agency.email|default:'-' }}</td>
+              <td data-label="CNPJ">{{ agency.cnpj|default:'-' }}</td>
+              <td data-label="Município">{{ agency.municipio_nome|default:'-' }}/{{ agency.municipio_uf|default:'-' }}</td>
+              <td data-label="Status">
+                {% if agency.is_approved %}
+                  <span class="badge bg-success">Aprovado</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Pendente</span>
+                {% endif %}
+                {% if not agency.is_active %}
+                  <span class="badge bg-secondary">Inativo</span>
+                {% endif %}
+              </td>
+              <td data-label="Cadastrado em">{{ agency.created_at|format_datetime_sp }}</td>
+              <td class="text-end" data-label="Ações">
+                <div class="btn-group btn-group-sm">
+                  {% if not agency.is_approved and agency.is_active %}
+                    <form method="POST" action="{% url 'approve_user' agency.id %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-success btn-sm"
+                              onclick="return confirm('Aprovar {{ agency.name }}?')">Aprovar</button>
+                    </form>
+                  {% endif %}
+                  {% if agency.is_active %}
+                    <form method="POST" action="{% url 'reject_user' agency.id %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-outline-danger btn-sm"
+                              onclick="return confirm('Desativar {{ agency.name }}?')">Desativar</button>
+                    </form>
+                  {% else %}
+                    <form method="POST" action="{% url 'activate_user' agency.id %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-outline-primary btn-sm"
+                              onclick="return confirm('Reativar {{ agency.name }}?')">Reativar</button>
+                    </form>
+                  {% endif %}
+                  <a href="{% url 'edit_user_by_admin' agency.id %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="datatable-empty">
+        <i class="bi bi-buildings fs-1 d-block mb-3"></i>
+        <p class="fw-semibold">Nenhum órgão cadastrado ainda.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ABA: Administradores -->
+{% elif tab == 'admins' %}
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title mb-3">
+      <i class="bi bi-person-gear me-2"></i>Administradores da plataforma
+    </h5>
+    <p class="text-muted small mb-3">
+      Administradores podem aprovar e gerenciar usuários. Somente você pode promover ou remover esse nível de acesso.
+    </p>
+    {% if all_admins %}
+      <div class="table-responsive">
+        <table class="table align-middle table-stack">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Nível</th>
+              <th>Status</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for admin in all_admins %}
+            <tr>
+              <td class="fw-semibold" data-label="Nome">{{ admin.name }}</td>
+              <td data-label="E-mail">{{ admin.email|default:'-' }}</td>
+              <td data-label="Nível">
+                {% if admin.is_platform_owner %}
+                  <span class="badge bg-dark">Dono SaaS</span>
+                {% else %}
+                  <span class="badge bg-danger">Admin</span>
+                {% endif %}
+              </td>
+              <td data-label="Status">
+                {% if admin.is_active %}
+                  <span class="badge bg-success">Ativo</span>
+                {% else %}
+                  <span class="badge bg-secondary">Inativo</span>
+                {% endif %}
+              </td>
+              <td class="text-end" data-label="Ações">
+                {% if not admin.is_platform_owner %}
+                  <form method="POST" action="{% url 'toggle_admin' admin.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            onclick="return confirm('Remover privilégios de admin de {{ admin.name }}?')">
+                      <i class="bi bi-person-dash me-1"></i>Remover admin
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="datatable-empty">
+        <i class="bi bi-person-x fs-1 d-block mb-3"></i>
+        <p class="fw-semibold">Nenhum admin cadastrado.</p>
+      </div>
+    {% endif %}
+
+    <!-- Promover usuário a admin -->
+    <hr class="my-4">
+    <h6 class="mb-3"><i class="bi bi-person-plus me-2"></i>Promover usuário a admin</h6>
+    <p class="text-muted small">
+      Para promover alguém, edite o usuário no
+      <a href="{% url 'dashboard_admin' %}?filter=all">painel de administração</a>
+      ou use o painel abaixo para buscar pelo ID do usuário.
+    </p>
+    <form method="POST" action="{% url 'toggle_admin' 0 %}" id="promoteForm" class="d-flex gap-2 align-items-end flex-wrap">
+      {% csrf_token %}
+      <div>
+        <label class="form-label small fw-semibold" for="promote_user_id">ID do usuário</label>
+        <input type="number" class="form-control form-control-sm" id="promote_user_id" name="_user_id"
+               placeholder="Ex: 42" min="1" style="width:140px">
+      </div>
+      <button type="button" class="btn btn-primary btn-sm"
+              onclick="promoteUser()">
+        <i class="bi bi-arrow-up-circle me-1"></i>Promover a admin
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function promoteUser() {
+  const id = document.getElementById('promote_user_id').value;
+  if (!id) { alert('Informe o ID do usuário.'); return; }
+  if (!confirm('Promover usuário #' + id + ' a administrador?')) return;
+  const form = document.getElementById('promoteForm');
+  form.action = '/owner/toggle-admin/' + id;
+  form.submit();
+}
+</script>
+{% endblock %}

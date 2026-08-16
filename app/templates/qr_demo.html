@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}QR Code - Demo Mostra Tech{% endblock %}
 
@@ -194,7 +195,7 @@
         <p style="color: #666; margin-bottom: 2rem;">
             Aponte a câmera do seu celular para o código abaixo
         </p>
-        <img src="{{ url_for('static', filename='qr_code_demo.png') }}"
+        <img src="{% load static %}{% static 'qr_code_demo.png' %}"
              alt="QR Code para acesso ao sistema"
              class="qr-code-image">
         <button class="btn-copy" onclick="window.print()">
@@ -254,7 +255,7 @@
     </div>
 
     <div class="text-center my-4">
-        <a href="{{ url_for('views.index') }}" class="btn btn-lg btn-primary">
+        <a href="{% url 'index' %}" class="btn btn-lg btn-primary">
             <i class="bi bi-house"></i> Voltar ao Sistema
         </a>
     </div>

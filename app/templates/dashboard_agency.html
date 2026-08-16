@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 {% block title %}Painel do órgão - Cidadão Ativo{% endblock %}
 {% block content %}
 <div class="dashboard-header">
   <div>
     <h2 class="mb-1">Gestão de chamados</h2>
     <p class="text-muted mb-0">
-      {{ current_user.orgao_nome or current_user.name }}  {{ current_user.municipio_nome }}/{{ current_user.municipio_uf }}
+      {{ user.orgao_nome|default:user.name }}  {{ user.municipio_nome }}/{{ user.municipio_uf }}
     </p>
   </div>
   <div class="d-flex align-items-center gap-2">
@@ -34,7 +35,7 @@
   </div>
   <div class="metric-card">
     <span class="metric-label">Concluídos</span>
-    <div class="metric-value">{{ stats.concluido }}</div>
+    <div class="metric-value">{{ stats.resolvido }}</div>
     <span class="metric-hint">Finalizados e comunicados</span>
   </div>
 </div>
@@ -52,7 +53,7 @@
   <div class="metric-card">
     <span class="metric-label">Chamados resolvidos</span>
     <div class="metric-value">
-      {{ resolution_metrics.resolved_count or 0 }}
+      {{ resolution_metrics.resolved_count|default:0 }}
     </div>
     <span class="metric-hint">Histórico no município</span>
   </div>
@@ -94,15 +95,15 @@
             {% for citizen in pending_citizens %}
             <tr>
               <td class="fw-semibold" data-label="Nome">{{ citizen.name }}</td>
-              <td data-label="CPF">{{ citizen.cpf or '-' }}</td>
-              <td data-label="Telefone">{{ citizen.telefone or '-' }}</td>
+              <td data-label="CPF">{{ citizen.cpf|default:'-' }}</td>
+              <td data-label="Telefone">{{ citizen.telefone|default:'-' }}</td>
               <td data-label="Município">{{ citizen.municipio_origem_nome }}/{{ citizen.municipio_origem_uf }}</td>
-              <td data-label="Comprovante">{{ citizen.residence_proof_type or '-' }}</td>
+              <td data-label="Comprovante">{{ citizen.residence_proof_type|default:'-' }}</td>
               <td data-label="Solicitado em">{{ citizen.created_at | format_datetime_sp }}</td>
               <td class="text-end" data-label="Ações">
                 <div class="btn-group btn-group-sm">
                   {% if citizen.residence_proof_path %}
-                    <a href="{{ url_for('views.view_residence_proof', user_id=citizen.id) }}" class="btn btn-outline-secondary" title="Ver comprovante" target="_blank">
+                    <a href="{% url 'view_residence_proof' citizen.id %}" class="btn btn-outline-secondary" title="Ver comprovante" target="_blank">
                       <i class="bi bi-filetype-pdf"></i>
                     </a>
                   {% endif %}
@@ -126,42 +127,32 @@
 
 <div class="card mb-4">
   <div class="card-body">
-    <form method="GET" action="{{ url_for('views.dashboard_agency') }}" class="row g-3 align-items-end">
+    <form method="GET" action="{% url 'dashboard_agency' %}" class="row g-3 align-items-end">
       <div class="col-md-4">
         <label for="status" class="form-label fw-semibold">Status</label>
         <select class="form-select" id="status" name="status" onchange="this.form.submit()">
-          {% set status_map = {
-            '': 'Todos',
-            'aberto': 'Abertos',
-            'visualizado': 'Visualizados',
-            'em_andamento': 'Em andamento',
-            'concluido': 'Concluídos',
-            'avaliado': 'Avaliados',
-            'rejeitado': 'Rejeitados'
-          } %}
-          {% for value, label in status_map.items() %}
-            <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
+          <option value="" {% if filters.status == '' %}selected{% endif %}>Todos</option>
+          <option value="aberto" {% if filters.status == 'aberto' %}selected{% endif %}>Abertos</option>
+          <option value="visualizado" {% if filters.status == 'visualizado' %}selected{% endif %}>Visualizados</option>
+          <option value="em_andamento" {% if filters.status == 'em_andamento' %}selected{% endif %}>Em andamento</option>
+          <option value="concluido" {% if filters.status == 'concluido' %}selected{% endif %}>Concluídos</option>
+          <option value="avaliado" {% if filters.status == 'avaliado' %}selected{% endif %}>Avaliados</option>
+          <option value="rejeitado" {% if filters.status == 'rejeitado' %}selected{% endif %}>Rejeitados</option>
         </select>
       </div>
       <div class="col-md-4">
         <label for="category" class="form-label fw-semibold">Categoria</label>
         <select class="form-select" id="category" name="category" onchange="this.form.submit()">
-          {% set categories = {
-            '': 'Todas',
-            'iluminacao': 'Iluminação',
-            'vias': 'Vias e trânsito',
-            'agua_esgoto': 'Água e esgoto',
-            'limpeza': 'Limpeza urbana',
-            'outros': 'Outros'
-          } %}
-          {% for value, label in categories.items() %}
-            <option value="{{ value }}" {% if filters.category == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
+          <option value="" {% if filters.category == '' %}selected{% endif %}>Todas</option>
+          <option value="iluminacao" {% if filters.category == 'iluminacao' %}selected{% endif %}>Iluminação</option>
+          <option value="vias" {% if filters.category == 'vias' %}selected{% endif %}>Vias e trânsito</option>
+          <option value="agua_esgoto" {% if filters.category == 'agua_esgoto' %}selected{% endif %}>Água e esgoto</option>
+          <option value="limpeza" {% if filters.category == 'limpeza' %}selected{% endif %}>Limpeza urbana</option>
+          <option value="outros" {% if filters.category == 'outros' %}selected{% endif %}>Outros</option>
         </select>
       </div>
       <div class="col-md-4 d-flex gap-2">
-        <a href="{{ url_for('views.dashboard_agency') }}" class="btn btn-outline-secondary flex-grow-1">
+        <a href="{% url 'dashboard_agency' %}" class="btn btn-outline-secondary flex-grow-1">
           Limpar filtros
         </a>
       </div>
@@ -210,7 +201,7 @@
       </div>
     </div>
     <small class="text-muted d-block mt-3">
-      Limite aplicado: {{ current_user.municipio_nome }}/{{ current_user.municipio_uf }}
+      Limite aplicado: {{ user.municipio_nome }}/{{ user.municipio_uf }}
     </small>
   </div>
 </div>
@@ -226,6 +217,7 @@
               <th>ID</th>
               <th>Título</th>
               <th>Categoria</th>
+              <th>Urgência</th>
               <th>Denunciante</th>
               <th>Status</th>
               <th>Registrado em</th>
@@ -239,15 +231,20 @@
               <td class="fw-semibold text-primary" data-label="ID">#{{ report.id }}</td>
               <td data-label="Título">{{ report.title }}</td>
               <td data-label="Categoria">{{ report.category }}</td>
-              <td data-label="Denunciante">{{ report.user.name if report.user else 'Anônimo' }}</td>
+              <td data-label="Urgência">
+                <span class="badge bg-danger-subtle text-danger fw-semibold">
+                  <i class="bi bi-arrow-up-circle"></i> {{ report.urgency_votes_count }} voto(s)
+                </span>
+              </td>
+              <td data-label="Denunciante">{% if report.user %}{{ report.user.name }}{% else %}Anônimo{% endif %}</td>
               <td data-label="Status">
                 <span class="status-dot {{ report.status }}"></span>
                 <span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span>
               </td>
               <td data-label="Registrado em">{{ report.created_at | format_datetime_sp }}</td>
-              <td data-label="Responsável">{{ report.assigned_user.name if report.assigned_user else 'Não atribuído' }}</td>
+              <td data-label="Responsável">{% if report.assigned_user %}{{ report.assigned_user.name }}{% else %}Não atribuído{% endif %}</td>
               <td class="text-end" data-label="Ações">
-                <a href="{{ url_for('views.report_detail', report_id=report.id) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
+                <a href="{% url 'report_detail' report.id %}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
                   <i class="bi bi-eye"></i> Detalhes
                 </a>
               </td>
@@ -275,7 +272,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
       <form id="rejectForm" method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% csrf_token %}
         <div class="modal-body">
           <p>Você está prestes a rejeitar o cadastro de <strong id="citizenNameReject"></strong>.</p>
           <div class="mb-3">
@@ -298,10 +295,10 @@
 <script>
   window.agencyMapConfig = {
     reports: {{ map_reports|tojson }},
-    bounds: {{ map_bounds|tojson if map_bounds else 'null' }},
-    center: {{ map_center|tojson if map_center else 'null' }},
+    bounds: {% if map_bounds %}{{ map_bounds|tojson }}{% else %}null{% endif %},
+    center: {% if map_center %}{{ map_center|tojson }}{% else %}null{% endif %},
     heatPoints: {{ heat_points|tojson }},
-    municipioLabel: "{{ (current_user.municipio_nome ~ '/' ~ current_user.municipio_uf)|e }}"
+    municipioLabel: {{ user.municipio_nome|tojson }} + "/" + {{ user.municipio_uf|tojson }}
   };
 
   const csrfToken = document.querySelector('meta[name=\"csrf-token\"]').getAttribute('content');
@@ -317,7 +314,7 @@
 
     const input = document.createElement('input');
     input.type = 'hidden';
-    input.name = 'csrf_token';
+    input.name = 'csrfmiddlewaretoken';
     input.value = csrfToken;
     form.appendChild(input);
 

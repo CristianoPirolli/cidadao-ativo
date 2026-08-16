@@ -28,6 +28,11 @@ ALLOWED_DOCUMENT_MIME_TYPES = {
 }
 
 
+def _get_filename(file) -> str:
+    """Retorna o nome do arquivo compatível com Flask (filename) e Django (name)."""
+    return getattr(file, 'filename', None) or getattr(file, 'name', '') or ''
+
+
 def get_file_extension(filename: str) -> str:
     """
     Retorna a extensão do arquivo em minúsculas
@@ -80,14 +85,15 @@ def validate_image_file(file, max_size_mb: int = 10) -> dict:
     Returns:
         Dict com 'valid' (bool), 'message' (str), 'safe_filename' (str)
     """
-    if not file or not file.filename:
+    filename = _get_filename(file)
+    if not file or not filename:
         return {
             'valid': False,
             'message': 'Nenhum arquivo fornecido'
         }
 
     # Validar extensão
-    if not allowed_image_file(file.filename):
+    if not allowed_image_file(filename):
         return {
             'valid': False,
             'message': f'Tipo de arquivo não permitido. Use: {", ".join(ALLOWED_IMAGE_EXTENSIONS)}'
@@ -141,7 +147,7 @@ def validate_image_file(file, max_size_mb: int = 10) -> dict:
         }
 
     # Gerar nome seguro
-    safe_name = secure_filename(file.filename)
+    safe_name = secure_filename(filename)
 
     return {
         'valid': True,
@@ -162,14 +168,15 @@ def validate_document_file(file, max_size_mb: int = 5) -> dict:
     Returns:
         Dict com 'valid' (bool), 'message' (str), 'safe_filename' (str)
     """
-    if not file or not file.filename:
+    filename = _get_filename(file)
+    if not file or not filename:
         return {
             'valid': False,
             'message': 'Nenhum arquivo fornecido'
         }
 
     # Validar extensão
-    if not allowed_document_file(file.filename):
+    if not allowed_document_file(filename):
         return {
             'valid': False,
             'message': f'Tipo de arquivo não permitido. Use: {", ".join(ALLOWED_DOCUMENT_EXTENSIONS)}'
@@ -201,7 +208,7 @@ def validate_document_file(file, max_size_mb: int = 5) -> dict:
         }
 
     # Se for imagem, validar
-    extension = get_file_extension(file.filename)
+    extension = get_file_extension(filename)
     if extension in ['jpg', 'jpeg', 'png']:
         try:
             file.seek(0)
@@ -224,7 +231,7 @@ def validate_document_file(file, max_size_mb: int = 5) -> dict:
             }
 
     # Gerar nome seguro
-    safe_name = secure_filename(file.filename)
+    safe_name = secure_filename(filename)
 
     return {
         'valid': True,
