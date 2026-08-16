@@ -107,10 +107,10 @@
                       <i class="bi bi-filetype-pdf"></i>
                     </a>
                   {% endif %}
-                  <button class="btn btn-success" onclick="approveCitizen({{ citizen.id }}, '{{ citizen.name }}')">
+                  <button class="btn btn-success" onclick="approveCitizen({{ citizen.id }}, '{{ citizen.name|escapejs }}')">
                     <i class="bi bi-check-lg"></i>
                   </button>
-                  <button class="btn btn-outline-danger" onclick="showRejectModal({{ citizen.id }}, '{{ citizen.name }}')">
+                  <button class="btn btn-outline-danger" onclick="showRejectModal({{ citizen.id }}, '{{ citizen.name|escapejs }}')">
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>

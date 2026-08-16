@@ -118,14 +118,14 @@
                   <form method="POST" action="{% url 'approve_user' agency.id %}" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-success"
-                            onclick="return confirm('Aprovar o órgão {{ agency.name }}?')">
+                            onclick="return confirm('Aprovar o órgão {{ agency.name|escapejs }}?')">
                       <i class="bi bi-check-lg me-1"></i>Aprovar
                     </button>
                   </form>
                   <form method="POST" action="{% url 'reject_user' agency.id %}" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-danger"
-                            onclick="return confirm('Rejeitar o órgão {{ agency.name }}?')">
+                            onclick="return confirm('Rejeitar o órgão {{ agency.name|escapejs }}?')">
                       <i class="bi bi-x-lg me-1"></i>Rejeitar
                     </button>
                   </form>
@@ -194,20 +194,20 @@
                     <form method="POST" action="{% url 'approve_user' agency.id %}" class="d-inline">
                       {% csrf_token %}
                       <button type="submit" class="btn btn-success btn-sm"
-                              onclick="return confirm('Aprovar {{ agency.name }}?')">Aprovar</button>
+                              onclick="return confirm('Aprovar {{ agency.name|escapejs }}?')">Aprovar</button>
                     </form>
                   {% endif %}
                   {% if agency.is_active %}
                     <form method="POST" action="{% url 'reject_user' agency.id %}" class="d-inline">
                       {% csrf_token %}
                       <button type="submit" class="btn btn-outline-danger btn-sm"
-                              onclick="return confirm('Desativar {{ agency.name }}?')">Desativar</button>
+                              onclick="return confirm('Desativar {{ agency.name|escapejs }}?')">Desativar</button>
                     </form>
                   {% else %}
                     <form method="POST" action="{% url 'activate_user' agency.id %}" class="d-inline">
                       {% csrf_token %}
                       <button type="submit" class="btn btn-outline-primary btn-sm"
-                              onclick="return confirm('Reativar {{ agency.name }}?')">Reativar</button>
+                              onclick="return confirm('Reativar {{ agency.name|escapejs }}?')">Reativar</button>
                     </form>
                   {% endif %}
                   <a href="{% url 'edit_user_by_admin' agency.id %}" class="btn btn-outline-secondary btn-sm">
@@ -275,7 +275,7 @@
                   <form method="POST" action="{% url 'toggle_admin' admin.id %}" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-danger btn-sm"
-                            onclick="return confirm('Remover privilégios de admin de {{ admin.name }}?')">
+                            onclick="return confirm('Remover privilégios de admin de {{ admin.name|escapejs }}?')">
                       <i class="bi bi-person-dash me-1"></i>Remover admin
                     </button>
                   </form>

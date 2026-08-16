@@ -136,7 +136,7 @@
                   {% if not user.is_approved and user.is_active %}
                     <form method="POST" action="{% url 'approve_user' user.id %}" class="d-inline">
                       {% csrf_token %}
-                      <button type="submit" class="btn btn-success" onclick="return confirm('Aprovar {{ user.name }}?')">
+                      <button type="submit" class="btn btn-success" onclick="return confirm('Aprovar {{ user.name|escapejs }}?')">
                         Aprovar
                       </button>
                     </form>
@@ -146,14 +146,14 @@
                     {% if not user.is_admin %}
                       <form method="POST" action="{% url 'reject_user' user.id %}" class="d-inline">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Desativar {{ user.name }}?')">
+                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Desativar {{ user.name|escapejs }}?')">
                           Desativar
                         </button>
                       </form>
                     {% elif request.user.is_platform_owner and not user.is_platform_owner %}
                       <form method="POST" action="{% url 'reject_user' user.id %}" class="d-inline">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Desativar {{ user.name }}?')">
+                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Desativar {{ user.name|escapejs }}?')">
                           Desativar
                         </button>
                       </form>
@@ -162,14 +162,14 @@
                     {% if not user.is_admin %}
                       <form method="POST" action="{% url 'activate_user' user.id %}" class="d-inline">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Reativar {{ user.name }}?')">
+                        <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Reativar {{ user.name|escapejs }}?')">
                           Reativar
                         </button>
                       </form>
                     {% elif request.user.is_platform_owner and not user.is_platform_owner %}
                       <form method="POST" action="{% url 'activate_user' user.id %}" class="d-inline">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Reativar {{ user.name }}?')">
+                        <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Reativar {{ user.name|escapejs }}?')">
                           Reativar
                         </button>
                       </form>
