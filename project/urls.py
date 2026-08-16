@@ -12,9 +12,11 @@ urlpatterns = [
 # de novo internamente, mesmo fora desse if). Não há proxy reverso separado
 # servindo /uploads/ neste deploy (gunicorn serve tudo direto, como já é feito
 # para estáticos via whitenoise), então registra a view direto, sem o helper.
+# Exclui residence_proofs/ propositalmente: comprovantes de residência só podem
+# ser acessados via view_residence_proof (autenticada, checa órgão + município).
 urlpatterns += [
     re_path(
-        r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'),
+        r'^%s(?!residence_proofs/)(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'),
         serve_static,
         {'document_root': settings.MEDIA_ROOT},
     ),
