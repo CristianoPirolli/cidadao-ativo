@@ -25,8 +25,8 @@
             </div>
           </div>
 
-          <form method="POST" action="/register" id="registerForm" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <form method="POST" action="{% url 'register' %}" id="registerForm" enctype="multipart/form-data">
+            {% csrf_token %}
             <input type="hidden" name="user_type" id="user_type" value="cidadao">
 
             <!-- Campos comuns -->

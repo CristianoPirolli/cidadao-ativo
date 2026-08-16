@@ -37,8 +37,8 @@
         <p class="text-muted mb-0" id="loginSubtitle">Use seu CPF para acessar seu painel.</p>
       </div>
 
-      <form method="POST" action="{{ url_for('views.login') }}" id="loginForm" novalidate>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <form method="POST" action="{% url 'login' %}" id="loginForm" novalidate>
+        {% csrf_token %}
         <input type="hidden" name="user_type_selected" id="user_type_selected" value="cidadao">
 
         <div class="mb-3">
@@ -71,7 +71,7 @@
               Lembrar sessão
             </label>
           </div>
-          <a href="{{ url_for('views.register') }}" class="small fw-semibold text-primary">
+          <a href="{% url 'register' %}" class="small fw-semibold text-primary">
             Precisa criar uma conta?
           </a>
         </div>

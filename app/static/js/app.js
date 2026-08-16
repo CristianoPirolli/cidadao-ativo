@@ -137,7 +137,7 @@ function initCitizenPage() {
       // Enviar formulário
       alertBox.textContent = 'Enviando chamado...';
 
-      const resp = await fetch('/api/reports', { method: 'POST', body: fd });
+      const resp = await fetch('/api/reports/create', { method: 'POST', body: fd });
       const data = await resp.json();
       if (!resp.ok) throw new Error((data && data.errors) ? data.errors.join('\n') : 'Erro ao enviar');
 

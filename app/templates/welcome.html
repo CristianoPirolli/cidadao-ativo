@@ -276,10 +276,10 @@
         </div>
 
         <div class="action-buttons">
-            <a href="{{ url_for('views.register') }}" class="btn-primary-custom">
+            <a href="{% url 'register' %}" class="btn-primary-custom">
                 ✨ Fazer Cadastro
             </a>
-            <a href="{{ url_for('views.login') }}" class="btn-secondary-custom">
+            <a href="{% url 'login' %}" class="btn-secondary-custom">
                 🔑 Já tenho conta
             </a>
         </div>

@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.local
+.git/
+.gitignore
+logs/
+*.log
+.pytest_cache/
+tests/
+start_demo.*
+clear_database.py
