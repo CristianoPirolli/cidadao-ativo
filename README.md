@@ -15,7 +15,6 @@ Sistema web desenvolvido em Flask que permite aos cidadãos reportar problemas d
 - [Configuração](#configuração)
 - [Uso](#uso)
 - [API](#api)
-- [Testes](#testes)
 - [Deploy](#deploy)
 - [Roadmap](#roadmap)
 
@@ -61,11 +60,6 @@ Sistema web desenvolvido em Flask que permite aos cidadãos reportar problemas d
 ### Database:
 - **MySQL 8.0+** - Banco de dados relacional
 
-### Testes:
-- **pytest** - Framework de testes
-- **pytest-flask** - Integração Flask/pytest
-- **pytest-cov** - Cobertura de código
-
 ---
 
 ## 🏗️ Arquitetura
@@ -89,7 +83,6 @@ cidadao-ativo/
 │   │   ├── login.html           # Login
 │   │   └── register.html        # Registro
 │   └── uploads/                 # Imagens enviadas
-├── tests/                       # Testes automatizados
 ├── logs/                        # Logs da aplicação
 ├── config.py                    # Configurações por ambiente
 ├── requirements.txt             # Dependências Python
@@ -316,29 +309,6 @@ Retorna estatísticas gerais.
   }
 }
 ```
-
----
-
-## 🧪 Testes
-
-Execute os testes automatizados:
-
-```bash
-# Rodar todos os testes
-pytest
-
-# Com cobertura de código
-pytest --cov=app --cov-report=html
-
-# Rodar testes específicos
-pytest tests/test_api.py
-pytest tests/test_models.py
-
-# Modo verbose
-pytest -v
-```
-
-Cobertura atual: ~80% (veja `htmlcov/index.html`)
 
 ---
 
