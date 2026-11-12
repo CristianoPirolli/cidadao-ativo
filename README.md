@@ -1,465 +1,237 @@
-# 🏙️ Cidadão Ativo
+# Cidadão Ativo
 
-**Plataforma de participação cidadã para reportar problemas urbanos com geolocalização**
+**Plataforma de participação cidadã para registrar e acompanhar problemas urbanos com geolocalização.**
 
-Sistema web desenvolvido em Flask que permite aos cidadãos reportar problemas de infraestrutura urbana (iluminação, vias, água e esgoto, limpeza, etc.) com localização GPS e fotos, e aos administradores públicos gerenciar e acompanhar a resolução dessas demandas.
+Cidadãos abrem chamados (iluminação, vias, água e esgoto, limpeza…) com foto e localização GPS; o órgão público do município recebe, atualiza o status e responde; a comunidade prioriza os chamados com votos de urgência e participa da ouvidoria municipal.
+
+Projeto desenvolvido no PRATIC IV — UNOESC. Os materiais acadêmicos estão em [`docs/pratic-iv`](docs/pratic-iv).
 
 ---
 
-## 📋 Índice
+## Sumário
 
 - [Funcionalidades](#funcionalidades)
-- [Tecnologias](#tecnologias)
-- [Arquitetura](#arquitetura)
-- [Instalação](#instalação)
-- [Configuração](#configuração)
-- [Uso](#uso)
+- [Stack](#stack)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Executando com Docker](#executando-com-docker)
+- [Desenvolvimento local](#desenvolvimento-local)
+- [Testes e qualidade](#testes-e-qualidade)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
 - [API](#api)
-- [Deploy](#deploy)
-- [Roadmap](#roadmap)
+- [Perfis de usuário](#perfis-de-usuário)
+- [Segurança](#segurança)
 
 ---
 
-## ✨ Funcionalidades
+## Funcionalidades
 
-### Para Cidadãos:
-- ✅ Reportar problemas urbanos via formulário web
-- ✅ Geolocalização automática (GPS do navegador)
-- ✅ Seleção manual de localização no mapa interativo
-- ✅ Upload de fotos dos problemas
-- ✅ Categorização (Iluminação, Vias, Água/Esgoto, Limpeza, Outros)
-- ✅ Visualização de denúncias no mapa
+**Cidadão**
+- Cadastro com CPF e comprovante de residência (aprovado pelo órgão do seu município)
+- Abertura de chamados com foto, categoria e localização (GPS ou clique no mapa)
+- Detecção automática do município pela coordenada (geocodificação reversa + IBGE)
+- Voto de urgência em chamados próximos (até 200 m, configurável)
+- Ouvidoria municipal
 
-### Para Administradores:
-- ✅ Dashboard com mapa de todas as denúncias
-- ✅ Lista de denúncias com filtros
-- ✅ Atualização de status (Aberto → Em Execução → Resolvido)
-- ✅ Visualização de fotos anexadas
-- ✅ Sistema de autenticação seguro
-- ✅ Estatísticas gerais
+**Órgão público (prefeitura)**
+- Painel com mapa, mapa de calor e regiões com mais ocorrências
+- Atualização de status, comentários e histórico completo do chamado
+- Métricas de tempo de resolução
+- Aprovação ou rejeição de cadastros de cidadãos do município
 
----
+**Administrador / dono da plataforma (SaaS)**
+- Aprovação de órgãos, gestão de usuários e de administradores
+- Moderação da ouvidoria
+- Estatísticas gerais da plataforma
 
-## 🛠️ Tecnologias
+## Stack
 
-### Backend:
-- **Flask 3.0** - Framework web Python
-- **SQLAlchemy 2.0** - ORM para banco de dados
-- **Flask-Login** - Gerenciamento de sessões
-- **Flask-WTF** - Proteção CSRF
-- **Flask-Limiter** - Rate limiting
-- **PyMySQL** - Driver MySQL
-- **Pillow** - Processamento de imagens
+| Camada | Tecnologia |
+|---|---|
+| Backend | Python 3.12, Django 5.2 |
+| Banco de dados | PostgreSQL 16 (driver psycopg 3) |
+| Frontend | Templates Django, Bootstrap 5, Leaflet (OpenStreetMap) |
+| Servidor | Gunicorn + Nginx, WhiteNoise para estáticos |
+| Infra | Docker / Docker Compose |
+| Qualidade | pytest + pytest-django, Ruff, GitHub Actions |
 
-### Frontend:
-- **Bootstrap 5.3** - Framework CSS
-- **Leaflet 1.9** - Mapas interativos
-- **OpenStreetMap** - Dados de mapas
-- **Vanilla JavaScript** - Sem frameworks pesados
-
-### Database:
-- **MySQL 8.0+** - Banco de dados relacional
-
----
-
-## 🏗️ Arquitetura
+## Estrutura do projeto
 
 ```
 cidadao-ativo/
-├── app/
-│   ├── __init__.py              # Application factory
-│   ├── controllers/
-│   │   ├── api_routes.py        # Endpoints REST API
-│   │   └── view_routes.py       # Rotas de templates
-│   ├── models/
-│   │   └── models.py            # Modelos Report e User
-│   ├── static/
-│   │   ├── css/styles.css       # Estilos customizados
-│   │   └── js/app.js            # JavaScript do frontend
-│   ├── templates/
-│   │   ├── base.html            # Template base
-│   │   ├── index.html           # Página cidadã
-│   │   ├── admin.html           # Dashboard admin
-│   │   ├── login.html           # Login
-│   │   └── register.html        # Registro
-│   └── uploads/                 # Imagens enviadas
-├── logs/                        # Logs da aplicação
-├── config.py                    # Configurações por ambiente
-├── requirements.txt             # Dependências Python
-├── .env.example                 # Exemplo de variáveis de ambiente
-└── run.py                       # Entry point
+├── backend/                     # Aplicação Django
+│   ├── config/                  # Projeto Django
+│   │   ├── settings/
+│   │   │   ├── base.py          # Configurações comuns
+│   │   │   ├── development.py   # Desenvolvimento local
+│   │   │   ├── production.py    # Produção (Docker)
+│   │   │   └── test.py          # Suíte de testes
+│   │   ├── urls.py
+│   │   ├── wsgi.py
+│   │   └── asgi.py
+│   ├── apps/
+│   │   ├── core/                # Páginas públicas, healthcheck, validações (CPF, CNPJ, arquivos), e-mail
+│   │   ├── accounts/            # Usuário customizado, login, cadastro, aprovações
+│   │   ├── reports/             # Chamados, histórico, votos de urgência, API
+│   │   ├── ouvidoria/           # Mural de mensagens por município
+│   │   ├── dashboards/          # Painéis por perfil
+│   │   └── locations/           # Municípios (IBGE) e geocodificação
+│   ├── requirements/
+│   │   ├── base.txt             # Produção
+│   │   └── dev.txt              # Testes e lint
+│   ├── conftest.py
+│   ├── pyproject.toml           # pytest, Ruff, coverage
+│   └── manage.py
+├── frontend/
+│   ├── templates/               # Templates organizados por app
+│   └── static/                  # CSS e JavaScript
+├── docker/
+│   ├── backend/                 # Dockerfile e entrypoint
+│   └── nginx/                   # Configuração do proxy reverso
+├── docs/pratic-iv/              # Relatório, diagnóstico e apresentação
+├── docker-compose.yml           # Stack completa (db + backend + nginx)
+├── docker-compose.dev.yml       # Sobrescrita para desenvolvimento
+└── .env.example
 ```
 
-### Padrões Utilizados:
-- **Application Factory Pattern** - Múltiplas instâncias do app
-- **Blueprints** - Modularização de rotas
-- **MVC Pattern** - Separação de responsabilidades
-- **Repository Pattern** - Abstração de acesso a dados
+Cada app segue a mesma organização: `models.py`, `views.py`, `urls.py`, `admin.py`, `services/` (regras de negócio, sem dependência de request) e `tests/`.
 
----
+## Executando com Docker
 
-## 🚀 Instalação
+Pré-requisito: Docker com o plugin Compose.
 
-### Pré-requisitos:
-- Python 3.8+
-- MySQL 8.0+
-- pip e venv
-
-### Passo a passo:
-
-1. **Clone o repositório:**
-```bash
-git clone https://github.com/seu-usuario/cidadao-ativo.git
-cd cidadao-ativo
-```
-
-2. **Crie e ative um ambiente virtual:**
-```bash
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Linux/Mac
-source venv/bin/activate
-```
-
-3. **Instale as dependências:**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Configure o banco de dados MySQL:**
-```sql
-CREATE DATABASE cidadao_ativo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'cidadao_user'@'localhost' IDENTIFIED BY 'sua_senha_aqui';
-GRANT ALL PRIVILEGES ON cidadao_ativo.* TO 'cidadao_user'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-5. **Configure as variáveis de ambiente:**
 ```bash
 cp .env.example .env
-# Edite o arquivo .env com suas configurações
+# edite .env: defina DJANGO_SECRET_KEY e POSTGRES_PASSWORD
+
+docker compose up -d --build
 ```
 
-6. **Inicialize o banco de dados:**
+Acesse **http://localhost:8000**. As migrações e o `collectstatic` rodam automaticamente na subida do container.
+
+Criar o primeiro administrador:
+
 ```bash
-flask init-db
+docker compose exec backend python manage.py createsuperuser
 ```
 
-7. **Crie um usuário administrador:**
+Para gerar uma `DJANGO_SECRET_KEY`:
+
 ```bash
-flask create-admin
+python -c "import secrets; print(secrets.token_urlsafe(50))"
 ```
 
-8. **Inicie o servidor:**
+Comandos úteis:
+
 ```bash
-python run.py
+docker compose logs -f backend         # logs da aplicação
+docker compose exec db psql -U cidadao_ativo cidadao_ativo
+docker compose down                    # para os containers (mantém os dados)
+docker compose down -v                 # para e apaga os volumes (banco e uploads)
 ```
 
-O aplicativo estará disponível em `http://localhost:8000`
+**Modo desenvolvimento no Docker** (código montado como volume, recarga automática, Postgres exposto na porta 5432):
 
----
-
-## ⚙️ Configuração
-
-### Arquivo `.env`:
-
-```env
-# Flask
-FLASK_ENV=development
-SECRET_KEY=sua-chave-secreta-muito-segura
-
-# Database
-SQLALCHEMY_DATABASE_URI=mysql+pymysql://cidadao_user:senha@localhost:3306/cidadao_ativo
-
-# Redis (opcional - para rate limiting em produção)
-REDIS_URL=redis://localhost:6379/0
-```
-
-### Configurações por Ambiente:
-
-O arquivo `config.py` define três ambientes:
-
-- **Development**: Debug ativo, logs verbosos, sem rate limiting
-- **Production**: Segurança máxima, HTTPS, rate limiting ativo
-- **Testing**: Banco em memória, CSRF desabilitado
-
-Para alternar entre ambientes, ajuste `FLASK_ENV` no `.env`.
-
----
-
-## 📖 Uso
-
-### Interface Cidadã:
-1. Acesse `http://localhost:8000`
-2. Preencha o formulário com título, descrição e categoria
-3. Clique no mapa para marcar a localização (ou use geolocalização automática)
-4. Anexe uma foto (opcional)
-5. Envie a denúncia
-
-### Dashboard Administrativo:
-1. Acesse `http://localhost:8000/login`
-2. Faça login com credenciais de admin
-3. Visualize todas as denúncias no mapa
-4. Clique em marcadores para ver detalhes
-5. Altere status: Aberto → Em Execução → Resolvido
-
----
-
-## 🔌 API
-
-### Documentação da API REST:
-
-#### **GET /api/reports**
-Lista todas as denúncias com paginação.
-
-**Query Parameters:**
-- `page` (int): Número da página (padrão: 1)
-- `per_page` (int): Itens por página (padrão: 50, max: 100)
-- `status` (string): Filtrar por status (`aberto`, `em_execucao`, `resolvido`)
-- `category` (string): Filtrar por categoria
-
-**Resposta:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "title": "Buraco na via",
-      "description": "Grande buraco...",
-      "category": "Vias",
-      "lat": -23.55,
-      "lng": -46.63,
-      "status": "aberto",
-      "image_url": "http://localhost:8000/uploads/foto.jpg",
-      "created_at": "2025-01-15T10:30:00",
-      "updated_at": "2025-01-15T10:30:00"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "per_page": 50,
-    "total": 150,
-    "pages": 3,
-    "has_next": true,
-    "has_prev": false
-  }
-}
-```
-
-#### **POST /api/reports**
-Cria uma nova denúncia.
-
-**Body (multipart/form-data):**
-- `title` (string, obrigatório)
-- `description` (string, obrigatório)
-- `category` (string, obrigatório)
-- `lat` (float, obrigatório)
-- `lng` (float, obrigatório)
-- `image` (file, opcional)
-
-**Resposta:** `201 Created`
-
-#### **GET /api/reports/:id**
-Busca uma denúncia específica.
-
-**Resposta:** `200 OK`
-
-#### **PATCH /api/reports/:id** (Requer autenticação)
-Atualiza o status de uma denúncia.
-
-**Body (JSON):**
-```json
-{
-  "status": "em_execucao"
-}
-```
-
-**Resposta:** `200 OK`
-
-#### **DELETE /api/reports/:id** (Requer autenticação)
-Deleta uma denúncia.
-
-**Resposta:** `200 OK`
-
-#### **GET /api/stats**
-Retorna estatísticas gerais.
-
-**Resposta:**
-```json
-{
-  "success": true,
-  "data": {
-    "total": 150,
-    "by_status": {
-      "aberto": 50,
-      "em_execucao": 30,
-      "resolvido": 70
-    },
-    "by_category": {
-      "Iluminação": 40,
-      "Vias": 60,
-      "Água e Esgoto": 20,
-      "Limpeza": 20,
-      "Outros": 10
-    }
-  }
-}
-```
-
----
-
-## 🚢 Deploy
-
-### Deploy em Produção:
-
-1. **Configure as variáveis de ambiente:**
 ```bash
-export FLASK_ENV=production
-export SECRET_KEY="chave-super-secreta-gerada-aleatoriamente"
-export SQLALCHEMY_DATABASE_URI="mysql+pymysql://user:pass@db-server/cidadao_ativo"
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# runserver em http://localhost:8001
 ```
 
-2. **Use um servidor WSGI (Gunicorn):**
+## Desenvolvimento local
+
+Pré-requisitos: Python 3.12+ e PostgreSQL 16 (local ou via Docker).
+
 ```bash
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:8000 "app:create_app('production')"
+# 1. Banco de dados (se não tiver Postgres instalado)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db   # expõe a porta 5432
+
+# 2. Ambiente Python
+cd backend
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements/dev.txt
+
+# 3. Configuração
+cp ../.env.example ../.env         # ajuste POSTGRES_* se necessário
+
+# 4. Banco e servidor
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
 ```
 
-3. **Configure HTTPS com Nginx:**
-```nginx
-server {
-    listen 443 ssl;
-    server_name cidadaoativo.com.br;
+Por padrão o `manage.py` usa `config.settings.development` (DEBUG ligado, e-mails no console, uploads servidos pelo Django).
 
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
+## Testes e qualidade
 
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
+Os testes rodam contra PostgreSQL (o pytest-django cria o banco `test_cidadao_ativo` automaticamente).
 
-    location /uploads {
-        alias /path/to/cidadao-ativo/app/uploads;
-    }
-}
-```
-
-4. **Use Redis para rate limiting:**
 ```bash
-export REDIS_URL=redis://localhost:6379/0
+cd backend
+pytest                    # suíte completa
+pytest --cov              # com cobertura
+ruff check .              # lint
+python manage.py makemigrations --check --dry-run
 ```
 
-5. **Configure logs persistentes:**
-```bash
-mkdir -p logs
-chmod 755 logs
-```
+O workflow em `.github/workflows/ci.yml` executa lint, verificação de migrações, testes e o build da imagem Docker a cada push e pull request.
 
-### Docker (Opcional):
+## Variáveis de ambiente
 
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-EXPOSE 8000
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app:create_app('production')"]
-```
+Todas estão documentadas em [`.env.example`](.env.example). As principais:
 
----
+| Variável | Descrição |
+|---|---|
+| `DJANGO_SECRET_KEY` | Chave secreta (obrigatória em produção) |
+| `DJANGO_DEBUG` | `true` apenas em desenvolvimento |
+| `DJANGO_ALLOWED_HOSTS` | Hosts permitidos, separados por vírgula |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | Origens confiáveis para CSRF (com esquema) |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | Conexão com o PostgreSQL (as mesmas variáveis configuram o container do banco) |
+| `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`… | SMTP para e-mails de aprovação |
+| `PLATFORM_OWNER_EMAIL` | E-mail do dono da plataforma (acesso ao painel SaaS) |
+| `URGENCY_VOTE_MAX_DISTANCE_METERS` | Distância máxima para votar urgência |
+| `DJANGO_SECURE_SSL_REDIRECT`, `DJANGO_SECURE_COOKIES` | Ative quando estiver atrás de HTTPS |
 
-## 🗺️ Roadmap
+## API
 
-### Implementações Futuras:
+Todas as rotas retornam JSON no formato `{"success": bool, "data": ..., "error": ...}`. Rotas que alteram dados exigem sessão autenticada e o token CSRF no cabeçalho `X-CSRFToken` (disponível na meta tag `csrf-token` das páginas).
 
-#### Curto Prazo:
-- [ ] **Sistema de notificações** - Avisar cidadãos sobre status
-- [ ] **Autenticação com título de eleitor** - Validação CPF/título
-- [ ] **Comentários** - Cidadãos podem comentar em denúncias
-- [ ] **Anexar múltiplas imagens** - Suporte a galeria
-- [ ] **Exportação de relatórios** - CSV/PDF para gestores
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| GET | `/api/reports` | autenticado | Lista paginada (`page`, `per_page`, `status`, `category`), ordenada por votos de urgência |
+| POST | `/api/reports/create` | autenticado | Cria chamado (multipart: `title`, `description`, `category`, `lat`, `lng`, `image`, `municipio_*`) |
+| GET | `/api/reports/<id>` | autenticado | Detalhe do chamado |
+| POST | `/api/reports/<id>/update` | órgão / admin | Altera status (`{"status": "...", "comment": "..."}`) |
+| POST | `/api/reports/<id>/comment` | órgão | Adiciona comentário |
+| POST | `/api/reports/<id>/vote` | cidadão | Voto de urgência (`{"lat": ..., "lng": ...}`) |
+| GET | `/api/reports/<id>/history` | autenticado | Histórico do chamado |
+| POST/DELETE | `/api/reports/<id>/delete` | admin | Remove chamado |
+| GET | `/api/stats` | público | Totais por status e categoria |
+| GET | `/api/municipios?q=&uf=` | público | Busca de municípios (IBGE) |
+| GET | `/api/municipios/com-orgaos` | público | Municípios com órgão cadastrado |
+| POST | `/api/geocode` | público (CSRF) | Município a partir de `lat`/`lng` |
+| GET | `/health` | público | Healthcheck da aplicação e do banco |
 
-#### Médio Prazo:
-- [ ] **Sistema de votos** - Cidadãos podem votar em denúncias
-- [ ] **Categorias customizáveis** - Admin pode criar categorias
-- [ ] **Integração com APIs de órgãos públicos** - Integração automática
-- [ ] **App mobile (PWA)** - Progressive Web App
-- [ ] **Sistema de gamificação** - Badges e rankings
+Status de chamado: `aberto`, `visualizado`, `em_andamento` (alias `em_execucao`), `resolvido`, `rejeitado`.
+Categorias: `iluminacao`, `via_publica`, `agua_esgoto`, `limpeza`, `outros`.
 
-#### Longo Prazo:
-- [ ] **IA para categorização automática** - Machine Learning
-- [ ] **Análise de sentimento** - Priorização por urgência
-- [ ] **Integração com WhatsApp** - Receber denúncias via bot
-- [ ] **Dashboard analítico avançado** - BI e visualizações
-- [ ] **Multi-tenancy** - Múltiplas cidades na mesma instância
+## Perfis de usuário
 
----
+| Perfil | Como é criado | Quem aprova |
+|---|---|---|
+| Cidadão | Cadastro público com CPF e comprovante | Órgão do município |
+| Órgão | Cadastro público com CNPJ | Administrador |
+| Administrador | `createsuperuser` ou promoção pelo dono | — |
+| Dono da plataforma | Usuário cujo e-mail é `PLATFORM_OWNER_EMAIL` | — |
 
-## 🛡️ Segurança
+O Django Admin fica em `/django-admin/`.
 
-### Recursos Implementados:
-- ✅ Proteção CSRF em todos os formulários
-- ✅ Rate limiting (200/dia, 50/hora)
-- ✅ Hashing de senhas (Werkzeug)
-- ✅ Validação de inputs
-- ✅ Proteção contra SQL Injection (SQLAlchemy)
-- ✅ Sessões seguras (HttpOnly, SameSite)
-- ✅ Logs de atividades suspeitas
+## Segurança
 
-### Recomendações Adicionais:
-- Use HTTPS em produção
-- Configure firewall no servidor
-- Monitore logs regularmente
-- Faça backups automáticos do banco
-- Atualize dependências regularmente
-
----
-
-## 📄 Licença
-
-Este projeto é open-source sob a licença MIT. Veja `LICENSE` para mais detalhes.
-
----
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Para contribuir:
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
-
-### Diretrizes:
-- Escreva testes para novas funcionalidades
-- Mantenha cobertura de testes acima de 70%
-- Siga PEP 8 (use `black` para formatação)
-- Documente mudanças no README
-
----
-
-## 📞 Suporte
-
-Para dúvidas ou problemas:
-- Abra uma [issue no GitHub](https://github.com/seu-usuario/cidadao-ativo/issues)
-- Entre em contato: cidadaoativo@example.com
-
----
-
-## 👏 Agradecimentos
-
-- OpenStreetMap pela base de mapas
-- Comunidade Flask pelo framework incrível
-- Todos os contribuidores do projeto
-
----
-
-**Desenvolvido com ❤️ para melhorar a participação cidadã no Brasil**
+- Senhas com hash do Django (PBKDF2) e validadores de senha
+- Proteção CSRF em todos os formulários e chamadas da API
+- Ações que alteram dados aceitam apenas `POST`
+- Limite de tentativas de login e cadastro por IP (django-ratelimit)
+- Proteção contra *open redirect* no parâmetro `next` do login
+- Comprovantes de residência nunca são servidos publicamente (bloqueados no Nginx; acesso somente pela view autenticada, restrita ao órgão do município)
+- Validação de imagens/documentos (extensão, MIME, tamanho e conteúdo via Pillow) e nomes de arquivo gerados com UUID
+- Container executando com usuário sem privilégios; `SECRET_KEY` obrigatória em produção
