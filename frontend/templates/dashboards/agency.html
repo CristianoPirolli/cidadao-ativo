@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% block title %}Painel do órgão - Cidadão Ativo{% endblock %}
+{% block content %}
+<div class="dashboard-header">
+  <div>
+    <h2 class="mb-1">Gestão de chamados</h2>
+    <p class="text-muted mb-0">
+      {{ user.orgao_nome|default:user.name }}  {{ user.municipio_nome }}/{{ user.municipio_uf }}
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="filter-chip">
+      <i class="bi bi-people"></i>
+      {{ stats.cidadaos_pendentes }} cidadão(s) aguardando aprovação
+    </span>
+  </div>
+</div>
+
+<div class="metric-grid mb-4">
+  <div class="metric-card">
+    <span class="metric-label">Chamados totais</span>
+    <div class="metric-value">{{ stats.total }}</div>
+    <span class="metric-hint">Recebidos para este município</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Abertos</span>
+    <div class="metric-value">{{ stats.aberto }}</div>
+    <span class="metric-hint">Aguardando análise inicial</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Em andamento</span>
+    <div class="metric-value">{{ stats.em_andamento }}</div>
+    <span class="metric-hint">Equipes atuando no local</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Concluídos</span>
+    <div class="metric-value">{{ stats.resolvido }}</div>
+    <span class="metric-hint">Finalizados e comunicados</span>
+  </div>
+</div>
+
+<div class="metric-grid mb-4">
+  <div class="metric-card">
+    <span class="metric-label">Tempo médio de resolução</span>
+    <div class="metric-value">
+      {{ resolution_metrics.average_seconds | format_duration }}
+    </div>
+    <span class="metric-hint">
+      Base em {{ resolution_metrics.resolved_count }} chamados concluídos
+    </span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Chamados resolvidos</span>
+    <div class="metric-value">
+      {{ resolution_metrics.resolved_count|default:0 }}
+    </div>
+    <span class="metric-hint">Histórico no município</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Regiões críticas mapeadas</span>
+    <div class="metric-value">{{ hot_regions | length }}</div>
+    <span class="metric-hint">Top {{ hot_regions | length }} agrupamentos</span>
+  </div>
+</div>
+
+{% if pending_citizens %}
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h5 class="card-title mb-0">Cadastros aguardando aprovação</h5>
+        <p class="text-muted mb-0">Valide os moradores para liberar o acesso a plataforma.</p>
+      </div>
+      <button class="btn btn-outline-warning btn-sm" data-bs-toggle="collapse" data-bs-target="#pendingCitizens">
+        <i class="bi bi-eye"></i> Exibir / ocultar
+      </button>
+    </div>
+
+    <div class="collapse show" id="pendingCitizens">
+      <div class="table-responsive">
+        <table class="table align-middle table-stack">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>CPF</th>
+              <th>Telefone</th>
+              <th>Município</th>
+              <th>Comprovante</th>
+              <th>Solicitado em</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for citizen in pending_citizens %}
+            <tr>
+              <td class="fw-semibold" data-label="Nome">{{ citizen.name }}</td>
+              <td data-label="CPF">{{ citizen.cpf|default:'-' }}</td>
+              <td data-label="Telefone">{{ citizen.telefone|default:'-' }}</td>
+              <td data-label="Município">{{ citizen.municipio_origem_nome }}/{{ citizen.municipio_origem_uf }}</td>
+              <td data-label="Comprovante">{{ citizen.residence_proof_type|default:'-' }}</td>
+              <td data-label="Solicitado em">{{ citizen.created_at | format_datetime_sp }}</td>
+              <td class="text-end" data-label="Ações">
+                <div class="btn-group btn-group-sm">
+                  {% if citizen.residence_proof_path %}
+                    <a href="{% url 'view_residence_proof' citizen.id %}" class="btn btn-outline-secondary" title="Ver comprovante" target="_blank">
+                      <i class="bi bi-filetype-pdf"></i>
+                    </a>
+                  {% endif %}
+                  <button class="btn btn-success" onclick="approveCitizen({{ citizen.id }}, '{{ citizen.name|escapejs }}')">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                  <button class="btn btn-outline-danger" onclick="showRejectModal({{ citizen.id }}, '{{ citizen.name|escapejs }}')">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="GET" action="{% url 'dashboard_agency' %}" class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label for="status" class="form-label fw-semibold">Status</label>
+        <select class="form-select" id="status" name="status" onchange="this.form.submit()">
+          <option value="" {% if filters.status == '' %}selected{% endif %}>Todos</option>
+          <option value="aberto" {% if filters.status == 'aberto' %}selected{% endif %}>Abertos</option>
+          <option value="visualizado" {% if filters.status == 'visualizado' %}selected{% endif %}>Visualizados</option>
+          <option value="em_andamento" {% if filters.status == 'em_andamento' %}selected{% endif %}>Em andamento</option>
+          <option value="concluido" {% if filters.status == 'concluido' %}selected{% endif %}>Concluídos</option>
+          <option value="avaliado" {% if filters.status == 'avaliado' %}selected{% endif %}>Avaliados</option>
+          <option value="rejeitado" {% if filters.status == 'rejeitado' %}selected{% endif %}>Rejeitados</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="category" class="form-label fw-semibold">Categoria</label>
+        <select class="form-select" id="category" name="category" onchange="this.form.submit()">
+          <option value="" {% if filters.category == '' %}selected{% endif %}>Todas</option>
+          <option value="iluminacao" {% if filters.category == 'iluminacao' %}selected{% endif %}>Iluminação</option>
+          <option value="via_publica" {% if filters.category == 'via_publica' %}selected{% endif %}>Vias e calçadas</option>
+          <option value="agua_esgoto" {% if filters.category == 'agua_esgoto' %}selected{% endif %}>Água e esgoto</option>
+          <option value="limpeza" {% if filters.category == 'limpeza' %}selected{% endif %}>Limpeza urbana</option>
+          <option value="outros" {% if filters.category == 'outros' %}selected{% endif %}>Outros</option>
+        </select>
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <a href="{% url 'dashboard_agency' %}" class="btn btn-outline-secondary flex-grow-1">
+          Limpar filtros
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Mapa de chamados</h5>
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div id="agency-map" class="agency-map {% if not map_reports %}d-flex align-items-center justify-content-center text-muted bg-light{% endif %}">
+          {% if not map_reports %}
+            <div class="text-center px-3">
+              <i class="bi bi-geo-alt mb-2 fs-4 d-block"></i>
+              <p class="mb-0">Nenhum chamado georreferenciado para exibir no mapa.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="hot-regions-panel border rounded p-3 h-100 d-flex flex-column">
+          <h6 class="mb-3">Regiões mais críticas</h6>
+          {% if hot_regions %}
+            <ul class="list-unstyled mb-0 flex-grow-1">
+              {% for region in hot_regions %}
+                <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                  <div>
+                    <small class="d-block text-muted">Coord.</small>
+                    <span class="fw-semibold">{{ region.label }}</span>
+                  </div>
+                  <span class="badge bg-danger rounded-pill">
+                    {{ region.count }} chamados
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">Sem regiões críticas identificadas.</p>
+          {% endif %}
+          <small class="text-muted mt-3">
+            Dados calculados com base em todos os chamados do município.
+          </small>
+        </div>
+      </div>
+    </div>
+    <small class="text-muted d-block mt-3">
+      Limite aplicado: {{ user.municipio_nome }}/{{ user.municipio_uf }}
+    </small>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Chamados em atendimento</h5>
+    {% if reports %}
+      <div class="table-responsive">
+        <table class="table align-middle table-stack">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Título</th>
+              <th>Categoria</th>
+              <th>Urgência</th>
+              <th>Denunciante</th>
+              <th>Status</th>
+              <th>Registrado em</th>
+              <th>Responsável</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for report in reports %}
+            <tr class="{% if not report.viewed_at %}table-warning{% endif %}">
+              <td class="fw-semibold text-primary" data-label="ID">#{{ report.id }}</td>
+              <td data-label="Título">{{ report.title }}</td>
+              <td data-label="Categoria">{{ report.category }}</td>
+              <td data-label="Urgência">
+                <span class="badge bg-danger-subtle text-danger fw-semibold">
+                  <i class="bi bi-arrow-up-circle"></i> {{ report.urgency_votes_count }} voto(s)
+                </span>
+              </td>
+              <td data-label="Denunciante">{% if report.user %}{{ report.user.name }}{% else %}Anônimo{% endif %}</td>
+              <td data-label="Status">
+                <span class="status-dot {{ report.status }}"></span>
+                <span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span>
+              </td>
+              <td data-label="Registrado em">{{ report.created_at | format_datetime_sp }}</td>
+              <td data-label="Responsável">{% if report.assigned_user %}{{ report.assigned_user.name }}{% else %}Não atribuído{% endif %}</td>
+              <td class="text-end" data-label="Ações">
+                <a href="{% url 'report_detail' report.id %}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
+                  <i class="bi bi-eye"></i> Detalhes
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="datatable-empty">
+        <i class="bi bi-archive fs-1 d-block mb-3"></i>
+        <p class="mb-2 fw-semibold">Nenhum chamado encontrado com os filtros aplicados.</p>
+        <p class="text-muted mb-0">Altere os filtros para visualizar outros registros.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="rejectModalLabel">Rejeitar cadastro</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <form id="rejectForm" method="POST">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Você está prestes a rejeitar o cadastro de <strong id="citizenNameReject"></strong>.</p>
+          <div class="mb-3">
+            <label for="rejection_reason" class="form-label">Motivo da rejeição</label>
+            <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="3" required></textarea>
+            <small class="text-muted">O motivo será enviado por email ao cidadão.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Rejeitar cadastro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  window.agencyMapConfig = {
+    reports: {{ map_reports|tojson }},
+    bounds: {% if map_bounds %}{{ map_bounds|tojson }}{% else %}null{% endif %},
+    center: {% if map_center %}{{ map_center|tojson }}{% else %}null{% endif %},
+    heatPoints: {{ heat_points|tojson }},
+    municipioLabel: {{ user.municipio_nome|tojson }} + "/" + {{ user.municipio_uf|tojson }}
+  };
+
+  const csrfToken = document.querySelector('meta[name=\"csrf-token\"]').getAttribute('content');
+
+  function approveCitizen(citizenId, citizenName) {
+    if (!confirm(`Aprovar o cadastro de ${citizenName}?`)) {
+      return;
+    }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/orgao/aprovar-cidadao/${citizenId}`;
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrfmiddlewaretoken';
+    input.value = csrfToken;
+    form.appendChild(input);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  function showRejectModal(citizenId, citizenName) {
+    document.getElementById('citizenNameReject').textContent = citizenName;
+    document.getElementById('rejectForm').action = `/orgao/rejeitar-cidadao/${citizenId}`;
+    const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+    modal.show();
+  }
+</script>
+{% endblock %}

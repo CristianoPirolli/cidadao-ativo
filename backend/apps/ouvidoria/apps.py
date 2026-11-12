@@ -1,0 +1,8 @@
+from django.apps import AppConfig
+
+
+class OuvidoriaConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.ouvidoria'
+    label = 'ouvidoria'
+    verbose_name = 'Ouvidoria'

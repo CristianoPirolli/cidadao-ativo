@@ -1,0 +1,554 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-9 col-xl-8">
+      <div class="card shadow-sm auth-card">
+        <div class="card-body">
+          <h5 class="card-title text-center mb-4">Cadastro no Sistema</h5>
+
+          <!-- Seleção de tipo de usuário -->
+          <div class="auth-form-grid mb-4">
+            <div class="mb-4 form-group-full">
+              <label class="form-label fw-bold">Tipo de Cadastro</label>
+              <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="user_type_selector" id="type_cidadao" value="cidadao" checked>
+                <label class="btn btn-outline-primary" for="type_cidadao">
+                  <i class="bi bi-person"></i> Cidadão
+                </label>
+
+                <input type="radio" class="btn-check" name="user_type_selector" id="type_orgao" value="orgao">
+                <label class="btn btn-outline-primary" for="type_orgao">
+                  <i class="bi bi-building"></i> Órgão Público
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <form method="POST" action="{% url 'register' %}" id="registerForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="user_type" id="user_type" value="cidadao">
+
+            <!-- Campos comuns -->
+            <div class="auth-form-grid">
+              <div class="mb-3 form-group-full">
+                <label for="name" class="form-label">Nome Completo</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+              </div>
+
+              <div class="mb-3">
+                <label for="email" class="form-label">Email <span id="email_optional" style="display:none;">(opcional)</span><span id="email_required" style="display:none;">*</span></label>
+                <input type="email" class="form-control" id="email" name="email">
+              </div>
+
+              <div class="mb-3" id="cpf_field">
+                <label for="cpf" class="form-label">CPF *</label>
+                <input type="text" class="form-control" id="cpf" name="cpf" maxlength="14" placeholder="000.000.000-00">
+              </div>
+
+              <div class="mb-3" id="cnpj_field" style="display:none;">
+                <label for="cnpj" class="form-label">CNPJ *</label>
+                <input type="text" class="form-control" id="cnpj" name="cnpj" maxlength="18" placeholder="00.000.000/0000-00">
+              </div>
+
+              <div class="mb-3" id="orgao_nome_field" style="display:none;">
+                <label for="orgao_nome" class="form-label">Nome do órgão *</label>
+                <input type="text" class="form-control" id="orgao_nome" name="orgao_nome" placeholder="Ex: Secretaria de Obras">
+              </div>
+
+              <div class="mb-3 form-group-full" id="municipio_orgao_field" style="display:none;">
+                <label for="municipio_orgao" class="form-label">Município do órgão *</label>
+                <input type="text" class="form-control" id="municipio_orgao_autocomplete"
+                       placeholder="Digite pelo menos 3 letras e selecione da lista..." autocomplete="off">
+                <input type="hidden" id="municipio_ibge_id" name="municipio_ibge_id">
+                <input type="hidden" id="municipio_nome" name="municipio_nome">
+                <input type="hidden" id="municipio_uf" name="municipio_uf">
+                <div id="municipio_orgao_suggestions" class="list-group mt-1" style="max-height: 200px; overflow-y: auto;"></div>
+                <small class="form-text text-muted">
+                  <i class="bi bi-info-circle"></i> Digite o nome e <strong>clique em um município da lista</strong> que aparece abaixo
+                </small>
+                <div id="municipio_orgao_selected" class="alert alert-success mt-2 d-none">
+                  <i class="bi bi-check-circle"></i> Município selecionado: <strong id="municipio_orgao_selected_text"></strong>
+                </div>
+              </div>
+
+              <div class="mb-3 form-group-full" id="municipio_cidadao_field">
+                <label for="municipio_cidadao" class="form-label">Município de Origem *</label>
+                <div class="input-group mb-2">
+                  <input type="text" class="form-control" id="municipio_cidadao_autocomplete"
+                         placeholder="Digite o nome da cidade..." autocomplete="off">
+                  <button class="btn btn-outline-secondary" type="button" id="detectLocationBtn" title="Detectar localização atual">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <span class="d-none d-sm-inline">Detectar</span>
+                  </button>
+                </div>
+                <input type="hidden" id="municipio_origem_id" name="municipio_origem_id">
+                <input type="hidden" id="municipio_origem_nome" name="municipio_origem_nome">
+                <input type="hidden" id="municipio_origem_uf" name="municipio_origem_uf">
+                <div id="municipio_cidadao_suggestions" class="list-group mt-1"></div>
+                <small class="form-text text-muted">Município onde você reside. Apenas municípios com órgãos cadastrados estão disponíveis.</small>
+              </div>
+
+              <div class="mb-3">
+                <label for="telefone" class="form-label">Telefone</label>
+                <input type="tel" class="form-control" id="telefone" name="telefone" maxlength="15" placeholder="(00) 00000-0000">
+              </div>
+
+              <div class="mb-3 form-group-full" id="residence_proof_field">
+                <label for="residence_proof_type" class="form-label">Tipo de Comprovante de Residência *</label>
+                <select class="form-select mb-3" id="residence_proof_type" name="residence_proof_type" required>
+                  <option value="">Selecione o tipo...</option>
+                  <option value="conta_luz">Conta de Luz</option>
+                  <option value="conta_agua">Conta de Água</option>
+                  <option value="conta_telefone">Conta de Telefone</option>
+                  <option value="contrato_aluguel">Contrato de Aluguel</option>
+                  <option value="declaracao">Declaração de Residência</option>
+                </select>
+
+                <label for="residence_proof" class="form-label">Upload do Comprovante *</label>
+                <input type="file" class="form-control" id="residence_proof" name="residence_proof"
+                       accept=".pdf,.jpg,.jpeg,.png" required>
+                <small class="form-text text-muted">
+                  <i class="bi bi-info-circle"></i> Formatos aceitos: PDF, JPG, PNG (máx. 5MB)
+                </small>
+                <div id="file_preview" class="mt-2 d-none">
+                  <small class="text-success">
+                    <i class="bi bi-check-circle"></i> Arquivo selecionado: <span id="file_name"></span>
+                  </small>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="password" class="form-label">Senha</label>
+                <input type="password" class="form-control" id="password" name="password" minlength="6" required>
+                <small class="form-text text-muted">Mínimo 6 caracteres</small>
+              </div>
+
+              <div class="mb-3">
+                <label for="confirm_password" class="form-label">Confirmar Senha</label>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" minlength="6" required>
+              </div>
+            </div>
+<button type="submit" class="btn btn-primary w-100 mb-3">Cadastrar</button>
+            <div class="text-center">
+              <a href="/login" class="text-decoration-none">Já tem uma conta? Faça login</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Alternar entre tipos de usuário
+  document.querySelectorAll('input[name="user_type_selector"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const userType = e.target.value;
+      document.getElementById('user_type').value = userType;
+
+      // Campos específicos de cidadão
+      const cpfField = document.getElementById('cpf_field');
+      const cpfInput = document.getElementById('cpf');
+      const residenceProofField = document.getElementById('residence_proof_field');
+      const residenceProofTypeInput = document.getElementById('residence_proof_type');
+      const residenceProofInput = document.getElementById('residence_proof');
+
+      // Campos específicos de órgão
+      const cnpjField = document.getElementById('cnpj_field');
+      const cnpjInput = document.getElementById('cnpj');
+      const orgaoNomeField = document.getElementById('orgao_nome_field');
+      const orgaoNomeInput = document.getElementById('orgao_nome');
+      const municipioOrgaoField = document.getElementById('municipio_orgao_field');
+      const municipioOrgaoAutocomplete = document.getElementById('municipio_orgao_autocomplete');
+
+      // Campos específicos de cidadão - município
+      const municipioCidadaoField = document.getElementById('municipio_cidadao_field');
+      const municipioCidadaoAutocomplete = document.getElementById('municipio_cidadao_autocomplete');
+
+      // Email opcional/obrigatório
+      const emailInput = document.getElementById('email');
+      const emailOptional = document.getElementById('email_optional');
+      const emailRequired = document.getElementById('email_required');
+
+      if (userType === 'cidadao') {
+        // Mostrar campos de cidadão
+        cpfField.style.display = 'block';
+        cpfInput.required = true;
+        residenceProofField.style.display = 'block';
+        residenceProofTypeInput.required = true;
+        residenceProofInput.required = true;
+        municipioCidadaoField.style.display = 'block';
+        municipioCidadaoAutocomplete.required = true;
+
+        // Esconder campos de órgão
+        cnpjField.style.display = 'none';
+        cnpjInput.required = false;
+        cnpjInput.value = '';
+        orgaoNomeField.style.display = 'none';
+        orgaoNomeInput.required = false;
+        orgaoNomeInput.value = '';
+        municipioOrgaoField.style.display = 'none';
+        municipioOrgaoAutocomplete.required = false;
+        municipioOrgaoAutocomplete.value = '';
+
+        // Email opcional para cidadão
+        emailInput.required = false;
+        emailOptional.style.display = 'inline';
+        emailRequired.style.display = 'none';
+      } else {
+        // Esconder campos de cidadão
+        cpfField.style.display = 'none';
+        cpfInput.required = false;
+        cpfInput.value = '';
+        residenceProofField.style.display = 'none';
+        residenceProofTypeInput.required = false;
+        residenceProofTypeInput.value = '';
+        residenceProofInput.required = false;
+        residenceProofInput.value = '';
+        municipioCidadaoField.style.display = 'none';
+        municipioCidadaoAutocomplete.required = false;
+        municipioCidadaoAutocomplete.value = '';
+
+        // Mostrar campos de órgão
+        cnpjField.style.display = 'block';
+        cnpjInput.required = true;
+        orgaoNomeField.style.display = 'block';
+        orgaoNomeInput.required = true;
+        municipioOrgaoField.style.display = 'block';
+        municipioOrgaoAutocomplete.required = true;
+
+        // Email obrigatório para órgão
+        emailInput.required = true;
+        emailOptional.style.display = 'none';
+        emailRequired.style.display = 'inline';
+      }
+    });
+  });
+
+  // Inicializar com cidadão selecionado
+  document.getElementById('email_optional').style.display = 'inline';
+
+  // Máscaras de formatação
+  document.getElementById('cpf').addEventListener('input', (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 11) {
+      value = value.replace(/(\d{3})(\d)/, '$1.$2');
+      value = value.replace(/(\d{3})(\d)/, '$1.$2');
+      value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    }
+    e.target.value = value;
+  });
+
+  document.getElementById('telefone').addEventListener('input', (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 11) {
+      value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+      value = value.replace(/(\d)(\d{4})$/, '$1-$2');
+    }
+    e.target.value = value;
+  });
+
+  document.getElementById('cnpj').addEventListener('input', (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 14) {
+      value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+      value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+      value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+      value = value.replace(/(\d{4})(\d)/, '$1-$2');
+    }
+    e.target.value = value;
+  });
+
+  // Preview do arquivo selecionado e validação de tamanho
+  document.getElementById('residence_proof').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const filePreview = document.getElementById('file_preview');
+    const fileName = document.getElementById('file_name');
+
+    if (file) {
+      if (file.size > maxSize) {
+        alert('Arquivo muito grande! O tamanho máximo é 5MB.');
+        e.target.value = '';
+        filePreview.classList.add('d-none');
+        return;
+      }
+
+      fileName.textContent = file.name;
+      filePreview.classList.remove('d-none');
+    } else {
+      filePreview.classList.add('d-none');
+    }
+  });
+
+  // Validação de senhas
+  document.getElementById('registerForm').addEventListener('submit', (e) => {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+
+    if (password !== confirmPassword) {
+      e.preventDefault();
+      alert('As senhas não coincidem!');
+      return;
+    }
+
+    // Validar município selecionado para órgão
+    const userType = document.getElementById('user_type').value;
+    if (userType === 'orgao') {
+      const municipioId = document.getElementById('municipio_ibge_id').value;
+      if (!municipioId) {
+        e.preventDefault();
+        alert('Por favor, selecione um município da lista!');
+        return;
+      }
+    } else {
+      // Validar município selecionado para cidadão
+      const municipioOrigemId = document.getElementById('municipio_origem_id').value;
+      if (!municipioOrigemId) {
+        e.preventDefault();
+        alert('Por favor, selecione um município da lista!');
+        return;
+      }
+    }
+  });
+
+  // Autocomplete para município do órgão (todos os municípios)
+  let orgaoTimeout = null;
+  document.getElementById('municipio_orgao_autocomplete').addEventListener('input', async (e) => {
+    const query = e.target.value.trim();
+
+    if (query.length < 3) {
+      document.getElementById('municipio_orgao_suggestions').innerHTML = '';
+      return;
+    }
+
+    // Debounce
+    clearTimeout(orgaoTimeout);
+    orgaoTimeout = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/municipios?q=${encodeURIComponent(query)}`);
+        const result = await response.json();
+
+        // Handle API response format: {success: true, data: [...], count: N}
+        const municipios = result.data || result;
+
+        const suggestionsDiv = document.getElementById('municipio_orgao_suggestions');
+
+        if (!municipios || municipios.length === 0) {
+          suggestionsDiv.innerHTML = '<div class="list-group-item text-muted">Nenhum município encontrado</div>';
+          return;
+        }
+
+        suggestionsDiv.innerHTML = municipios.slice(0, 10).map(m =>
+          `<button type="button" class="list-group-item list-group-item-action"
+                   onclick="selectMunicipioOrgao(${m.id}, '${m.nome}', '${m.uf}')">
+            ${m.nome_completo}
+          </button>`
+        ).join('');
+      } catch (error) {
+        console.error('Erro ao buscar municípios:', error);
+        const suggestionsDiv = document.getElementById('municipio_orgao_suggestions');
+        suggestionsDiv.innerHTML = '<div class="list-group-item text-danger">Erro ao carregar municípios. Tente novamente.</div>';
+      }
+    }, 300);
+  });
+
+  // Autocomplete para município do cidadão (apenas com órgãos cadastrados)
+  let cidadaoTimeout = null;
+  document.getElementById('municipio_cidadao_autocomplete').addEventListener('input', async (e) => {
+    const query = e.target.value.trim();
+
+    if (query.length < 3) {
+      document.getElementById('municipio_cidadao_suggestions').innerHTML = '';
+      return;
+    }
+
+    // Debounce
+    clearTimeout(cidadaoTimeout);
+    cidadaoTimeout = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/municipios/com-orgaos`);
+        const result = await response.json();
+
+        // Handle API response format: {success: true, data: [...]}
+        const municipiosComOrgaos = result.data || result;
+
+        // Filtrar localmente
+        const filtered = municipiosComOrgaos.filter(m =>
+          m.nome_completo.toLowerCase().includes(query.toLowerCase())
+        );
+
+        const suggestionsDiv = document.getElementById('municipio_cidadao_suggestions');
+
+        if (!filtered || filtered.length === 0) {
+          suggestionsDiv.innerHTML = '<div class="list-group-item text-muted">Nenhum município com órgão cadastrado encontrado</div>';
+          return;
+        }
+
+        suggestionsDiv.innerHTML = filtered.slice(0, 10).map(m =>
+          `<button type="button" class="list-group-item list-group-item-action"
+                   onclick="selectMunicipioCidadao(${m.id}, '${m.nome}', '${m.uf}')">
+            ${m.nome_completo}
+          </button>`
+        ).join('');
+      } catch (error) {
+        console.error('Erro ao buscar municípios:', error);
+        const suggestionsDiv = document.getElementById('municipio_cidadao_suggestions');
+        suggestionsDiv.innerHTML = '<div class="list-group-item text-danger">Erro ao carregar municípios. Tente novamente.</div>';
+      }
+    }, 300);
+  });
+
+  // Função para selecionar município do órgão
+  function selectMunicipioOrgao(id, nome, uf) {
+    document.getElementById('municipio_ibge_id').value = id;
+    document.getElementById('municipio_nome').value = nome;
+    document.getElementById('municipio_uf').value = uf;
+    document.getElementById('municipio_orgao_autocomplete').value = `${nome}/${uf}`;
+    document.getElementById('municipio_orgao_suggestions').innerHTML = '';
+  }
+
+  // Função para selecionar município do cidadão
+  function selectMunicipioCidadao(id, nome, uf) {
+    document.getElementById('municipio_origem_id').value = id;
+    document.getElementById('municipio_origem_nome').value = nome;
+    document.getElementById('municipio_origem_uf').value = uf;
+    document.getElementById('municipio_cidadao_autocomplete').value = `${nome}/${uf}`;
+    document.getElementById('municipio_cidadao_suggestions').innerHTML = '';
+  }
+
+  // Detectar localização do cidadão
+  document.getElementById('detectLocationBtn').addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      alert('Geolocalização não é suportada pelo seu navegador.\n\nPor favor, selecione o município manualmente.');
+      return;
+    }
+
+    const btn = document.getElementById('detectLocationBtn');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Detectando...';
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        console.log('Coordenadas detectadas:', lat, lng);
+
+        try {
+          const response = await fetch('/api/geocode', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({lat, lng})
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+          }
+
+          const result = await response.json();
+          console.log('Resultado do geocoding:', result);
+
+          // Acessar dados aninhados corretamente
+          const data = result.data || result;
+
+          if (result.success && data.valid && data.municipio_ibge_id) {
+            // Verificar se o município tem órgão cadastrado
+            const orgaosResponse = await fetch('/api/municipios/com-orgaos');
+
+            if (!orgaosResponse.ok) {
+              throw new Error('Erro ao buscar municípios com órgãos');
+            }
+
+            const orgaosResult = await orgaosResponse.json();
+            const municipiosComOrgaos = orgaosResult.data || orgaosResult;
+            const temOrgao = municipiosComOrgaos.some(m => m.id === data.municipio_ibge_id);
+
+            if (temOrgao) {
+              selectMunicipioCidadao(
+                data.municipio_ibge_id,
+                data.municipio,
+                data.uf
+              );
+              alert(`✓ Localização detectada com sucesso!\n\nMunicípio: ${data.municipio_completo}`);
+            } else {
+              alert(`Município detectado: ${data.municipio_completo}\n\n⚠️ Ainda não há órgão cadastrado neste município.\n\nPor favor, escolha outro município da lista.`);
+            }
+          } else {
+            // Extrair mensagem de erro detalhada
+            const errorMsg = data.error || result.error || 'Não foi possível determinar o município';
+
+            // Se temos informações parciais sobre o município, mostrar
+            let detailMsg = errorMsg;
+            if (data.municipio && data.uf) {
+              detailMsg = `🌍 Localização detectada\n\n${errorMsg}`;
+
+              // Sugerir busca manual
+              console.log(`[Geolocation] Município detectado mas não validado: ${data.municipio}/${data.uf}`);
+            }
+
+            alert(`ℹ️ ${detailMsg}`);
+          }
+        } catch (error) {
+          console.error('Erro ao fazer geocoding:', error);
+
+          // Mensagem de erro mais amigável dependendo do tipo de erro
+          let errorDetails = '';
+          if (error.message.includes('HTTP')) {
+            errorDetails = '\n\nO serviço de localização retornou um erro. Isso pode acontecer quando:\n• A localização está em área rural ou remota\n• O serviço está temporariamente indisponível\n• Há problemas de conectividade';
+          } else if (error.message.includes('timeout')) {
+            errorDetails = '\n\nO serviço de localização demorou muito para responder. Verifique sua conexão com a internet.';
+          } else {
+            errorDetails = '\n\nVerifique sua conexão com a internet e tente novamente.';
+          }
+
+          alert(`❌ Erro ao detectar localização\n\n${error.message}${errorDetails}\n\n💡 Dica: Você pode selecionar o município manualmente da lista abaixo.`);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalHTML;
+        }
+      },
+      (error) => {
+        let errorMessage = 'Erro desconhecido';
+
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Permissão negada. Você precisa permitir o acesso à localização no navegador.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Localização indisponível. Verifique se o GPS/Wi-Fi está habilitado.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Tempo esgotado ao tentar obter localização.';
+            break;
+        }
+
+        console.error('Erro de geolocalização:', error);
+        alert(`❌ ${errorMessage}\n\nPor favor, selecione o município manualmente da lista.`);
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  });
+
+  // Limpar sugestões ao clicar fora
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#municipio_orgao_field')) {
+      document.getElementById('municipio_orgao_suggestions').innerHTML = '';
+    }
+    if (!e.target.closest('#municipio_cidadao_field')) {
+      document.getElementById('municipio_cidadao_suggestions').innerHTML = '';
+    }
+  });
+</script>
+{% endblock %}

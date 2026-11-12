@@ -1,0 +1,19 @@
+# Sobrescrita para desenvolvimento: código montado como volume e runserver
+# com recarga automática. Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  db:
+    ports:
+      - "${POSTGRES_PORT_HOST:-5432}:5432"
+
+  backend:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DJANGO_COLLECTSTATIC: "false"
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend

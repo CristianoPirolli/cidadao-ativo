@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Painel indisponível · Cidadão Ativo{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body text-center p-5">
+        <i class="bi bi-exclamation-triangle text-warning fs-1"></i>
+        <h1 class="h4 mt-3">Não foi possível abrir o painel</h1>
+        <p class="text-muted">{{ error }}</p>
+        <p class="text-muted small">Entre em contato com o administrador da plataforma para completar seu cadastro.</p>
+        <a href="{% url 'logout' %}" class="btn btn-outline-secondary">Sair</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
