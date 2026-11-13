@@ -66,8 +66,13 @@ function initMap(divId, center=DEFAULT_COORDS, zoom=null) {
   const defaultZoom = zoom !== null ? zoom : (isMobile ? 11 : 13);
 
   const map = L.map(divId).setView(center, defaultZoom);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
+  // Mapa base da CARTO (dados do OpenStreetMap). Os servidores públicos do
+  // OSM bloqueiam aplicações (erro 403 "Access blocked"), por isso usamos
+  // um provedor de tiles que permite uso por aplicações web.
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
   }).addTo(map);
   return map;
 }
