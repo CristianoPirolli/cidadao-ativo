@@ -21,5 +21,6 @@ CSRF_COOKIE_SECURE = env_bool('DJANGO_SECURE_COOKIES', False)
 SECURE_HSTS_SECONDS = int(env('DJANGO_SECURE_HSTS_SECONDS', '0'))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_REFERRER_POLICY = 'same-origin'
+# O OpenStreetMap exige o cabeçalho Referer para servir os mapas
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 X_FRAME_OPTIONS = 'DENY'
