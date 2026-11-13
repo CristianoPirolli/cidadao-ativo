@@ -66,7 +66,7 @@ function initMap(divId, center=DEFAULT_COORDS, zoom=null) {
   const defaultZoom = zoom !== null ? zoom : (isMobile ? 11 : 13);
 
   const map = L.map(divId).setView(center, defaultZoom);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
   return map;
