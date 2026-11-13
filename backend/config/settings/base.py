@@ -87,6 +87,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.core.context_processors.map_settings',
             ],
         },
     },
@@ -180,6 +181,20 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'noreply@cidadaoativo.com')
 URGENCY_VOTE_MAX_DISTANCE_METERS = int(env('URGENCY_VOTE_MAX_DISTANCE_METERS', '200'))
 PLATFORM_OWNER_EMAIL = (env('PLATFORM_OWNER_EMAIL') or '').strip().lower()
 DEMO_PUBLIC_URL = env('DEMO_PUBLIC_URL')
+
+# ── Mapas (Leaflet) ────────────────────────────────────────────────────────
+# Provedor de tiles do mapa base. O padrão (Esri World Street Map) não exige
+# chave. Para usar outro provedor (ex.: MapTiler, Stadia), defina a URL e a
+# atribuição no .env.
+MAP_TILE_URL = env(
+    'MAP_TILE_URL',
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+)
+MAP_TILE_ATTRIBUTION = env(
+    'MAP_TILE_ATTRIBUTION',
+    'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors, and the GIS user community',
+)
+MAP_TILE_MAX_ZOOM = int(env('MAP_TILE_MAX_ZOOM', '19'))
 
 # ── Mensagens → classes Bootstrap ──────────────────────────────────────────
 MESSAGE_TAGS = {

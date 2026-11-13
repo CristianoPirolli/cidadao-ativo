@@ -13,6 +13,23 @@ let currentMap = null;
 let locationStatusEl = null;
 const DEFAULT_COORDS = [-23.55, -46.63];
 
+// Configuração do mapa base exposta pelo template base (<script id="map-config">)
+const DEFAULT_MAP_CONFIG = {
+  tileUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+  attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
+  maxZoom: 19
+};
+
+function getMapConfig() {
+  const el = document.getElementById('map-config');
+  if (!el) return DEFAULT_MAP_CONFIG;
+  try {
+    return { ...DEFAULT_MAP_CONFIG, ...JSON.parse(el.textContent) };
+  } catch (e) {
+    return DEFAULT_MAP_CONFIG;
+  }
+}
+
 // Token CSRF exposto pelo template base (<meta name="csrf-token">)
 function getCsrfToken() {
   const meta = document.querySelector('meta[name="csrf-token"]');
@@ -66,13 +83,11 @@ function initMap(divId, center=DEFAULT_COORDS, zoom=null) {
   const defaultZoom = zoom !== null ? zoom : (isMobile ? 11 : 13);
 
   const map = L.map(divId).setView(center, defaultZoom);
-  // Mapa base da CARTO (dados do OpenStreetMap). Os servidores públicos do
-  // OSM bloqueiam aplicações (erro 403 "Access blocked"), por isso usamos
-  // um provedor de tiles que permite uso por aplicações web.
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    subdomains: 'abcd',
-    maxZoom: 20,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  // Provedor do mapa base configurado no backend (settings.MAP_TILE_*)
+  const tiles = getMapConfig();
+  L.tileLayer(tiles.tileUrl, {
+    maxZoom: tiles.maxZoom,
+    attribution: tiles.attribution
   }).addTo(map);
   return map;
 }
