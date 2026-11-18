@@ -6,13 +6,19 @@ from django.urls import reverse
 
 from apps.accounts.models import User, UserType
 from apps.core.decorators import admin_required, agency_required, citizen_required, owner_required
+from apps.core.pagination import paginate
 from apps.dashboards.services.dashboard import (
     DashboardError,
     get_admin_dashboard_data,
     get_agency_dashboard_data,
     get_citizen_dashboard_data,
+    voted_report_ids,
 )
 from apps.reports.models import Report, ReportCategory, ReportStatus
+
+CITIZEN_PAGE_SIZE = 20
+AGENCY_PAGE_SIZE = 25
+ADMIN_PAGE_SIZE = 25
 
 
 def _dashboard_error(request, exc):
@@ -40,10 +46,12 @@ def dashboard_citizen(request):
         data = get_citizen_dashboard_data(request.user)
     except DashboardError as exc:
         return _dashboard_error(request, exc)
+    page = paginate(request, data['reports'], CITIZEN_PAGE_SIZE)
     return render(request, 'dashboards/citizen.html', {
-        'reports': data['reports'],
+        'reports': page,
+        'page_obj': page,
         'stats': data['stats'],
-        'voted_report_ids': data.get('voted_report_ids', set()),
+        'voted_report_ids': voted_report_ids(request.user, page),
     })
 
 
@@ -101,10 +109,12 @@ def dashboard_agency(request):
     except DashboardError as exc:
         return _dashboard_error(request, exc)
 
-    map_reports, map_bounds, map_center = _build_map_context(data['reports'])
+    map_reports, map_bounds, map_center = _build_map_context(data['map_reports'])
+    page = paginate(request, data['reports'], AGENCY_PAGE_SIZE)
 
     return render(request, 'dashboards/agency.html', {
-        'reports': data['reports'],
+        'reports': page,
+        'page_obj': page,
         'stats': data['stats'],
         'pending_citizens': data['pending_citizens'],
         'filters': data['filters'],
@@ -129,8 +139,10 @@ def dashboard_admin(request):
     except DashboardError as exc:
         return _dashboard_error(request, exc)
 
+    page = paginate(request, data['users'], ADMIN_PAGE_SIZE)
     return render(request, 'dashboards/admin.html', {
-        'users': data['users'],
+        'users': page,
+        'page_obj': page,
         'stats': data['stats'],
         'report_stats': data['report_stats'],
         'recent_reports': data['recent_reports'],
@@ -155,10 +167,13 @@ def dashboard_owner(request):
         'municipalities': Report.objects.values('municipio_ibge_id').distinct().count(),
     }
 
+    tab = request.GET.get('tab', 'agencies')
+    listed = pending_agencies.order_by('created_at', 'id') if tab == 'agencies' else agencies.order_by('-created_at', '-id')
+    page = paginate(request, listed, ADMIN_PAGE_SIZE)
     return render(request, 'dashboards/owner.html', {
-        'tab': request.GET.get('tab', 'agencies'),
-        'pending_agencies': pending_agencies.order_by('created_at'),
+        'tab': tab,
+        'agencies': page,
+        'page_obj': page,
         'all_admins': User.objects.filter(is_admin=True).order_by('name'),
-        'all_agencies': agencies.order_by('-created_at'),
         'platform_stats': platform_stats,
     })

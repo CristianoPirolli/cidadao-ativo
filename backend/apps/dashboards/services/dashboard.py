@@ -1,15 +1,21 @@
 """
 Serviço de agregação de dados para os dashboards da aplicação.
+
+As listas são devolvidas como querysets (ainda não executados) para que as
+views as paginem; contagens e médias são calculadas pelo banco.
 """
 from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
 
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, F, Q
 
 from apps.accounts.models import User
 from apps.reports.models import Report, ReportUrgencyVote
+
+# Limite de marcadores no mapa do órgão (os mais urgentes primeiro)
+MAP_REPORTS_LIMIT = 500
 
 
 class DashboardError(Exception):
@@ -21,32 +27,33 @@ STATUS_KEYS = ['aberto', 'visualizado', 'em_andamento', 'resolvido', 'rejeitado'
 
 def _status_summary(queryset) -> dict[str, int]:
     counts = {key: 0 for key in STATUS_KEYS}
-    rows = queryset.values('status').annotate(count=Count('id'))
     total = 0
-    for row in rows:
+    for row in queryset.values('status').annotate(count=Count('id')).order_by():
         counts[row['status']] = row['count']
         total += row['count']
     counts['total'] = total
     return counts
 
 
-def _compute_resolution_metrics(reports: Iterable[Report]) -> dict[str, float | None]:
-    resolved = [r for r in reports if r.completed_at and r.created_at]
-    if not resolved:
-        return {'average_seconds': None, 'resolved_count': 0}
-    total_seconds = sum((r.completed_at - r.created_at).total_seconds() for r in resolved)
-    return {'average_seconds': total_seconds / len(resolved), 'resolved_count': len(resolved)}
+def _resolution_metrics(queryset) -> dict[str, float | int | None]:
+    resolved = queryset.filter(completed_at__isnull=False)
+    data = resolved.aggregate(average=Avg(F('completed_at') - F('created_at')), count=Count('id'))
+    average = data['average']
+    return {
+        'average_seconds': average.total_seconds() if average is not None else None,
+        'resolved_count': data['count'],
+    }
 
 
-def _build_heatmap_points(reports: Iterable[Report], precision: int = 3) -> list[dict[str, object]]:
+def _build_heatmap_points(coordinates: Iterable[tuple[float, float]], precision: int = 3) -> list[dict[str, object]]:
+    """Agrupa coordenadas próximas (``precision`` casas decimais ≈ 100 m)."""
     clusters = defaultdict(lambda: {'sum_lat': 0.0, 'sum_lng': 0.0, 'count': 0})
-    for report in reports:
-        if report.lat is None or report.lng is None:
+    for lat, lng in coordinates:
+        if lat is None or lng is None:
             continue
-        key = (round(report.lat, precision), round(report.lng, precision))
-        cluster = clusters[key]
-        cluster['sum_lat'] += report.lat
-        cluster['sum_lng'] += report.lng
+        cluster = clusters[(round(lat, precision), round(lng, precision))]
+        cluster['sum_lat'] += lat
+        cluster['sum_lng'] += lng
         cluster['count'] += 1
     points = [
         {
@@ -61,9 +68,17 @@ def _build_heatmap_points(reports: Iterable[Report], precision: int = 3) -> list
     return points
 
 
-def _order_reports_by_priority(queryset):
-    """Ordena por votos de urgência (desc) e data de criação (desc)."""
-    return queryset.annotate(vote_count=Count('urgency_votes', distinct=True)).order_by('-vote_count', '-created_at')
+def order_reports_by_priority(queryset):
+    """Ordena por votos de urgência (desc) e data de criação (desc), anotando ``vote_count``."""
+    return queryset.annotate(vote_count=Count('urgency_votes', distinct=True)).order_by('-vote_count', '-created_at', '-id')
+
+
+def voted_report_ids(user: User, reports: Iterable[Report]) -> set[int]:
+    """IDs, entre ``reports``, dos chamados em que o cidadão já votou."""
+    ids = [r.id for r in reports]
+    if not ids:
+        return set()
+    return set(ReportUrgencyVote.objects.filter(user=user, report_id__in=ids).values_list('report_id', flat=True))
 
 
 def get_citizen_dashboard_data(user: User) -> dict[str, object]:
@@ -74,18 +89,11 @@ def get_citizen_dashboard_data(user: User) -> dict[str, object]:
     if not municipio_id:
         raise DashboardError('Cidadão sem município de origem configurado.')
 
-    base_qs = Report.objects.filter(municipio_ibge_id=municipio_id).select_related('user', 'assigned_user')
-    reports = list(_order_reports_by_priority(base_qs))
-    stats = _status_summary(Report.objects.filter(municipio_ibge_id=municipio_id))
-
-    report_ids = [r.id for r in reports]
-    voted_report_ids = set()
-    if report_ids:
-        voted_report_ids = set(
-            ReportUrgencyVote.objects.filter(user=user, report_id__in=report_ids).values_list('report_id', flat=True)
-        )
-
-    return {'reports': reports, 'stats': stats, 'voted_report_ids': voted_report_ids}
+    base_qs = Report.objects.filter(municipio_ibge_id=municipio_id)
+    return {
+        'reports': order_reports_by_priority(base_qs),
+        'stats': _status_summary(base_qs),
+    }
 
 
 def get_agency_dashboard_data(
@@ -116,24 +124,18 @@ def get_agency_dashboard_data(
     if category_filter:
         filtered_qs = filtered_qs.filter(category=category_filter)
 
-    reports = list(_order_reports_by_priority(filtered_qs.select_related('user', 'assigned_user')))
-
-    municipality_reports = list(
-        base_qs.select_related('user').order_by('created_at')
-    )
-
-    resolution_metrics = _compute_resolution_metrics(municipality_reports)
-    heat_points = _build_heatmap_points(municipality_reports)
-    hot_regions = heat_points[:5]
+    reports = order_reports_by_priority(filtered_qs.select_related('user'))
+    heat_points = _build_heatmap_points(base_qs.values_list('lat', 'lng'))
 
     return {
         'reports': reports,
+        'map_reports': reports[:MAP_REPORTS_LIMIT],
         'stats': stats,
         'pending_citizens': pending_citizens,
         'filters': {'status': status_filter, 'category': category_filter},
-        'resolution_metrics': resolution_metrics,
+        'resolution_metrics': _resolution_metrics(base_qs),
         'heat_points': heat_points,
-        'hot_regions': hot_regions,
+        'hot_regions': heat_points[:5],
     }
 
 
@@ -149,8 +151,6 @@ def get_admin_dashboard_data(admin: User, filter_type: str = 'pending') -> dict[
     elif filter_type == 'approved':
         qs = qs.filter(is_approved=True)
 
-    users = list(qs.order_by('-created_at'))
-
     stats = User.objects.aggregate(
         total=Count('id'),
         pending=Count('id', filter=Q(is_approved=False, is_admin=False)),
@@ -158,23 +158,18 @@ def get_admin_dashboard_data(admin: User, filter_type: str = 'pending') -> dict[
         citizens=Count('id', filter=Q(user_type='cidadao')),
         agencies=Count('id', filter=Q(user_type='orgao')),
     )
-    for key in stats:
-        stats[key] = stats[key] or 0
-
-    report_stats = {
-        'total': Report.objects.count(),
-        'aberto': Report.objects.filter(status='aberto').count(),
-        'em_andamento': Report.objects.filter(status='em_andamento').count(),
-        'resolvidos': Report.objects.filter(status='resolvido').count(),
-        'rejeitados': Report.objects.filter(status='rejeitado').count(),
-    }
-
-    recent_reports = list(_order_reports_by_priority(Report.objects.select_related('user'))[:10])
+    report_stats = Report.objects.aggregate(
+        total=Count('id'),
+        aberto=Count('id', filter=Q(status='aberto')),
+        em_andamento=Count('id', filter=Q(status='em_andamento')),
+        resolvidos=Count('id', filter=Q(status='resolvido')),
+        rejeitados=Count('id', filter=Q(status='rejeitado')),
+    )
 
     return {
-        'users': users,
+        'users': qs.order_by('-created_at', '-id'),
         'stats': stats,
         'report_stats': report_stats,
-        'recent_reports': recent_reports,
+        'recent_reports': list(order_reports_by_priority(Report.objects.all())[:10]),
         'filter_type': filter_type,
     }

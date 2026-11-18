@@ -75,7 +75,9 @@ class Report(models.Model):
 
     @property
     def urgency_votes_count(self):
-        return self.urgency_votes.count()
+        # Listagens anotam ``vote_count`` na própria consulta (evita uma consulta por chamado)
+        annotated = getattr(self, 'vote_count', None)
+        return annotated if annotated is not None else self.urgency_votes.count()
 
     @property
     def status_display(self):

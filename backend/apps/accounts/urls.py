@@ -7,6 +7,12 @@ urlpatterns = [
     path('register', views.register_view, name='register'),
     path('logout', views.logout_view, name='logout'),
 
+    # Recuperação de senha
+    path('senha/recuperar', views.PasswordRecoveryView.as_view(), name='password_reset'),
+    path('senha/recuperar/enviado', views.PasswordRecoveryDoneView.as_view(), name='password_reset_done'),
+    path('senha/redefinir/<uidb64>/<token>', views.PasswordRecoveryConfirmView.as_view(), name='password_reset_confirm'),
+    path('senha/redefinida', views.PasswordRecoveryCompleteView.as_view(), name='password_reset_complete'),
+
     # Administrador
     path('admin/users/<int:user_id>/edit', views.edit_user_by_admin, name='edit_user_by_admin'),
     path('admin/approve/<int:user_id>', views.approve_user, name='approve_user'),
