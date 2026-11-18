@@ -37,7 +37,7 @@ def ouvidoria(request):
             return redirect('ouvidoria')
 
         try:
-            clean_content, _ = validate_ouvidoria_message(request.POST.get('content', ''))
+            clean_content = validate_ouvidoria_message(request.POST.get('content', ''))
         except OuvidoriaValidationError as exc:
             messages.error(request, str(exc))
             return redirect('ouvidoria')

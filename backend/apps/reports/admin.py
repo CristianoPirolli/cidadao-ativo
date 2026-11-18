@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.reports.models import Notification, Report, ReportHistory, ReportUrgencyVote
+from apps.reports.models import Report, ReportHistory, ReportUrgencyVote
 
 
 @admin.register(Report)
@@ -23,9 +23,3 @@ class ReportUrgencyVoteAdmin(admin.ModelAdmin):
     list_display = ('id', 'report', 'user', 'created_at')
     ordering = ('-created_at',)
 
-
-@admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'type', 'is_read', 'created_at')
-    list_filter = ('type', 'is_read')
-    ordering = ('-created_at',)

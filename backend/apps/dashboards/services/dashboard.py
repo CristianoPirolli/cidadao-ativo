@@ -164,8 +164,8 @@ def get_admin_dashboard_data(admin: User, filter_type: str = 'pending') -> dict[
     report_stats = {
         'total': Report.objects.count(),
         'aberto': Report.objects.filter(status='aberto').count(),
-        'em_andamento': Report.objects.filter(status__in=['em_andamento', 'em_execucao']).count(),
-        'resolvidos': Report.objects.filter(status__in=['resolvido', 'concluido']).count(),
+        'em_andamento': Report.objects.filter(status='em_andamento').count(),
+        'resolvidos': Report.objects.filter(status='resolvido').count(),
         'rejeitados': Report.objects.filter(status='rejeitado').count(),
     }
 

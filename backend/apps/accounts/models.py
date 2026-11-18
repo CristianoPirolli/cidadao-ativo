@@ -58,7 +58,6 @@ class User(AbstractBaseUser):
         related_name='approved_users'
     )
     approved_at = models.DateTimeField(null=True, blank=True)
-    migration_status = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     last_login = models.DateTimeField(null=True, blank=True)
 
@@ -101,31 +100,6 @@ class User(AbstractBaseUser):
     def has_module_perms(self, app_label):
         return self.is_admin
 
-    def to_dict(self, include_sensitive=False):
-        data = {
-            'id': self.id,
-            'name': self.name,
-            'email': self.email,
-            'user_type': self.user_type,
-            'telefone': self.telefone,
-            'is_active': self.is_active,
-            'is_admin': self.is_admin,
-            'is_approved': self.is_approved,
-            'approved_at': self.approved_at.isoformat() if self.approved_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'last_login': self.last_login.isoformat() if self.last_login else None,
-            'migration_status': self.migration_status,
-        }
-        if self.approved_by:
-            data['approved_by_name'] = self.approved_by.name
-        if include_sensitive:
-            data['cpf'] = self.cpf
-            if self.is_citizen:
-                data['residence_proof_type'] = self.residence_proof_type
-                data['municipio_origem_nome'] = self.municipio_origem_nome
-                data['municipio_origem_uf'] = self.municipio_origem_uf
-        return data
-
 
 class ApprovalRequest(models.Model):
     user = models.ForeignKey(
@@ -145,23 +119,3 @@ class ApprovalRequest(models.Model):
         db_table = 'approval_request'
         verbose_name = 'solicitação de aprovação'
         verbose_name_plural = 'solicitações de aprovação'
-
-    def to_dict(self):
-        data = {
-            'id': self.id,
-            'user_id': self.user_id,
-            'agency_id': self.agency_id,
-            'status': self.status,
-            'rejection_reason': self.rejection_reason,
-            'requested_at': self.requested_at.isoformat() if self.requested_at else None,
-            'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
-        }
-        if self.user:
-            data['user_name'] = self.user.name
-            data['user_cpf'] = self.user.cpf
-            data['user_telefone'] = self.user.telefone
-            data['municipio'] = self.user.municipio_origem_nome
-            data['uf'] = self.user.municipio_origem_uf
-        if self.agency:
-            data['agency_name'] = self.agency.orgao_nome
-        return data

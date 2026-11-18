@@ -1,6 +1,4 @@
 """Páginas públicas e endpoints de infraestrutura."""
-from django.conf import settings
-from django.contrib.staticfiles import finders
 from django.db import connection
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
@@ -12,13 +10,6 @@ def index(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     return render(request, 'core/welcome.html')
-
-
-def qr_demo(request):
-    return render(request, 'core/qr_demo.html', {
-        'demo_url': settings.DEMO_PUBLIC_URL,
-        'qr_code_exists': finders.find('qr_code_demo.png') is not None,
-    })
 
 
 @never_cache
