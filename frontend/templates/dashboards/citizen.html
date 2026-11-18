@@ -1,189 +1,91 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
-{% block title %}Chamados da sua cidade - Cidadão Ativo{% endblock %}
+{% block title %}Chamados da sua cidade · Cidadão Ativo{% endblock %}
 {% block content %}
-<div class="dashboard-header">
+<div class="page-header">
   <div>
-    <h2 class="mb-1">Chamados da sua cidade</h2>
-    <p class="text-muted mb-0">Acompanhe todos os registros do seu município e o atendimento feito pelo órgão responsável.</p>
+    <h1>Olá, {{ user.name|truncatewords:1|cut:"…" }}</h1>
+    <p class="text-muted">Chamados de {{ user.municipio_origem_nome }}/{{ user.municipio_origem_uf }}</p>
   </div>
-  <a href="{% url 'denuncia' %}" class="btn btn-primary btn-lg d-flex align-items-center gap-2">
-    <i class="bi bi-plus-circle"></i>
-    Novo chamado
+  <a href="{% url 'denuncia' %}" class="btn btn-primary btn-lg d-none d-lg-inline-flex">
+    <i class="bi bi-plus-circle" aria-hidden="true"></i> Novo chamado
   </a>
 </div>
 
-<div class="metric-grid mb-4">
-  <div class="metric-card">
-    <span class="metric-label text-uppercase">Total registrados</span>
-    <div class="metric-value">{{ stats.total }}</div>
-    <span class="metric-hint">Chamados do seu município</span>
-  </div>
-  <div class="metric-card">
-    <span class="metric-label text-uppercase">Abertos</span>
-    <div class="metric-value">{{ stats.aberto }}</div>
-    <span class="metric-hint">Aguardando análise do órgão</span>
-  </div>
-  <div class="metric-card">
-    <span class="metric-label text-uppercase">Em andamento</span>
-    <div class="metric-value">{{ stats.em_andamento }}</div>
-    <span class="metric-hint">Equipe em tratativa</span>
-  </div>
-  <div class="metric-card">
-    <span class="metric-label text-uppercase">Concluídos</span>
-    <div class="metric-value">{{ stats.resolvido }}</div>
-    <span class="metric-hint">Finalizados e aguardando avaliação</span>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-body">
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-      <h5 class="card-title mb-0">Histórico de chamados da cidade</h5>
-      <span class="filter-chip">
-        <i class="bi bi-lightning-charge"></i>
-        Atualizado automaticamente
-      </span>
+<section aria-labelledby="stats-title" class="mb-4">
+  <h2 id="stats-title" class="visually-hidden">Resumo</h2>
+  <div class="metric-grid">
+    <div class="metric-card">
+      <span class="metric-label">Total</span>
+      <span class="metric-value">{{ stats.total }}</span>
+      <span class="metric-hint">na cidade</span>
     </div>
-
-    {% if reports %}
-      <div class="table-responsive">
-        <table class="table align-middle table-stack">
-          <thead>
-            <tr>
-              <th scope="col">ID</th>
-              <th scope="col">Título</th>
-              <th scope="col">Categoria</th>
-              <th scope="col">Urgência</th>
-              <th scope="col" class="status-column">Status</th>
-              <th scope="col">Criado em</th>
-              <th scope="col" class="text-end">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for report in reports %}
-            <tr>
-              <td class="fw-semibold text-primary" data-label="ID">#{{ report.id }}</td>
-              <td data-label="Título">{{ report.title }}</td>
-              <td data-label="Categoria">
-                <span class="badge bg-light text-primary fw-semibold">
-                  <i class="bi bi-tag"></i> {{ report.category }}
-                </span>
-              </td>
-              <td data-label="Urgência">
-                <span class="badge bg-danger-subtle text-danger fw-semibold">
-                  <i class="bi bi-arrow-up-circle"></i>
-                  <span id="vote-count-{{ report.id }}">{{ report.urgency_votes_count }}</span> voto(s)
-                </span>
-              </td>
-              <td data-label="Status">
-                <span class="status-dot {{ report.status }}"></span>
-                <span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span>
-              </td>
-              <td data-label="Criado em">{{ report.created_at | format_datetime_sp }}</td>
-              <td class="text-end" data-label="Ações">
-                {% if report.user_id != user.id %}
-                  <button
-                    type="button"
-                    class="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-1"
-                    onclick="voteUrgency({{ report.id }})"
-                    {% if report.id in voted_report_ids %}disabled{% endif %}
-                    id="vote-btn-{{ report.id }}"
-                  >
-                    <i class="bi bi-hand-thumbs-up"></i>
-                    {% if report.id in voted_report_ids %}Votado{% else %}Votar urgência{% endif %}
-                  </button>
-                {% endif %}
-                <a href="{% url 'report_detail' report.id %}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
-                  <i class="bi bi-eye"></i> Detalhes
-                </a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="datatable-empty">
-        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-        <p class="mb-2 fw-semibold text-neutral-700">Ainda não há chamados para o seu município.</p>
-        <p class="text-muted mb-3">Relate um problema da sua cidade e acompanhe o andamento do atendimento.</p>
-        <a href="{% url 'denuncia' %}" class="btn btn-primary">
-          <i class="bi bi-plus-circle"></i> Registrar primeiro chamado
-        </a>
-      </div>
-    {% endif %}
+    <div class="metric-card is-aberto">
+      <span class="metric-label">Abertos</span>
+      <span class="metric-value">{{ stats.aberto }}</span>
+      <span class="metric-hint">aguardando análise</span>
+    </div>
+    <div class="metric-card is-em_andamento">
+      <span class="metric-label">Em andamento</span>
+      <span class="metric-value">{{ stats.em_andamento }}</span>
+      <span class="metric-hint">equipe atuando</span>
+    </div>
+    <div class="metric-card is-resolvido">
+      <span class="metric-label">Resolvidos</span>
+      <span class="metric-value">{{ stats.resolvido }}</span>
+      <span class="metric-hint">finalizados</span>
+    </div>
   </div>
-</div>
-{% endblock %}
+</section>
 
-{% block extra_js %}
-<script>
-  async function voteUrgency(reportId) {
-    const button = document.getElementById(`vote-btn-${reportId}`);
-    if (button) {
-      button.disabled = true;
-    }
-
-    const success = (message) => {
-      if (typeof showNotification === 'function') {
-        showNotification(message, 'success');
-      } else {
-        alert(message);
-      }
-    };
-    const error = (message) => {
-      if (typeof showNotification === 'function') {
-        showNotification(message, 'danger');
-      } else {
-        alert(message);
-      }
-    };
-
-    if (!navigator.geolocation) {
-      error('Geolocalização não disponível no navegador.');
-      if (button) button.disabled = false;
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const response = await fetch(`/api/reports/${reportId}/vote`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-          body: JSON.stringify({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude
-          })
-        });
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || 'Não foi possível registrar o voto.');
-        }
-
-        const countEl = document.getElementById(`vote-count-${reportId}`);
-        if (countEl && typeof result.urgency_votes_count !== 'undefined') {
-          countEl.textContent = result.urgency_votes_count;
-        }
-        if (button) {
-          button.textContent = 'Votado';
-          button.classList.remove('btn-outline-danger');
-          button.classList.add('btn-secondary');
-          button.disabled = true;
-        }
-        success('Voto de urgência registrado.');
-      } catch (err) {
-        if (button) button.disabled = false;
-        error(err.message || 'Erro ao votar urgência.');
-      }
-    }, () => {
-      if (button) button.disabled = false;
-      error('Ative sua localização para votar urgência neste chamado.');
-    }, {
-      enableHighAccuracy: true,
-      timeout: 10000
-    });
-  }
-</script>
+<section aria-labelledby="list-title">
+  <h2 id="list-title" class="h5 fw-bold mb-3">Chamados da cidade</h2>
+  {% if reports %}
+    <ul class="report-list">
+      {% for report in reports %}
+      <li class="report-card">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span>
+          <span class="badge badge-category">{{ report.get_category_display }}</span>
+          {% if report.user_id == user.id %}<span class="badge text-bg-light border">Seu chamado</span>{% endif %}
+        </div>
+        <h3 class="report-card-title">
+          <a href="{% url 'report_detail' report.id %}">{{ report.title }}</a>
+        </h3>
+        <p class="report-card-meta">
+          #{{ report.id }} · {{ report.created_at|format_datetime_sp:'%d/%m/%Y' }} ·
+          <span class="text-danger-emphasis"><i class="bi bi-arrow-up-circle" aria-hidden="true"></i>
+          <span data-vote-count="{{ report.id }}">{{ report.urgency_votes_count }}</span> voto(s)</span>
+        </p>
+        <div class="report-card-actions">
+          {% if report.user_id != user.id %}
+            {% if report.id in voted_report_ids %}
+              <button type="button" class="btn btn-secondary btn-sm" disabled>
+                <i class="bi bi-check-circle" aria-hidden="true"></i> Urgência votada
+              </button>
+            {% else %}
+              <button type="button" class="btn btn-outline-danger btn-sm" data-vote-report="{{ report.id }}"
+                      aria-label="Votar urgência no chamado {{ report.title }}">
+                <i class="bi bi-hand-thumbs-up" aria-hidden="true"></i> Votar urgência
+              </button>
+            {% endif %}
+          {% endif %}
+          <a href="{% url 'report_detail' report.id %}" class="btn btn-outline-primary btn-sm" aria-label="Ver detalhes do chamado {{ report.title }}">
+            Ver detalhes <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </a>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="datatable-empty">
+      <i class="bi bi-inbox fs-1 d-block mb-2" aria-hidden="true"></i>
+      <p class="fw-semibold mb-1">Ainda não há chamados na sua cidade.</p>
+      <p class="mb-3">Viu algum problema? Seja o primeiro a avisar a prefeitura.</p>
+      <a href="{% url 'denuncia' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle" aria-hidden="true"></i> Registrar chamado
+      </a>
+    </div>
+  {% endif %}
+</section>
 {% endblock %}

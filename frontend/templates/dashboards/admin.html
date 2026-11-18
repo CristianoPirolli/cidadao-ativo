@@ -1,185 +1,101 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
-{% block title %}Administração - Cidadão Ativo{% endblock %}
+{% block title %}Administração · Cidadão Ativo{% endblock %}
 {% block content %}
-<div class="dashboard-header">
+<div class="page-header">
   <div>
-    <h2 class="mb-1">Painel administrativo</h2>
-    <p class="text-muted mb-0">Controle de acessos da plataforma e acompanhamento de cadastros.</p>
+    <h1>Administração</h1>
+    <p class="text-muted">Cadastros da plataforma e visão geral dos chamados.</p>
   </div>
 </div>
 
-<div class="metric-grid mb-4">
-  <div class="metric-card">
-    <span class="metric-label">Pendentes</span>
-    <div class="metric-value">{{ stats.pending }}</div>
-    <span class="metric-hint">Solicitações aguardando aprovação</span>
+<section aria-labelledby="users-stats-title" class="mb-3">
+  <h2 id="users-stats-title" class="h6 fw-bold text-muted text-uppercase small">Usuários</h2>
+  <div class="metric-grid">
+    <div class="metric-card is-aberto"><span class="metric-label">Pendentes</span><span class="metric-value">{{ stats.pending }}</span><span class="metric-hint">aguardando aprovação</span></div>
+    <div class="metric-card is-resolvido"><span class="metric-label">Aprovados</span><span class="metric-value">{{ stats.approved }}</span><span class="metric-hint">com acesso liberado</span></div>
+    <div class="metric-card"><span class="metric-label">Cidadãos</span><span class="metric-value">{{ stats.citizens }}</span><span class="metric-hint">contas de moradores</span></div>
+    <div class="metric-card"><span class="metric-label">Órgãos</span><span class="metric-value">{{ stats.agencies }}</span><span class="metric-hint">prefeituras e secretarias</span></div>
   </div>
-  <div class="metric-card">
-    <span class="metric-label">Aprovados</span>
-    <div class="metric-value">{{ stats.approved }}</div>
-    <span class="metric-hint">Usuarios ativos</span>
-  </div>
-  <div class="metric-card">
-    <span class="metric-label">Cidadãos</span>
-    <div class="metric-value">{{ stats.citizens }}</div>
-    <span class="metric-hint">Contas de moradores</span>
-  </div>
-  <div class="metric-card">
-    <span class="metric-label">Órgãos</span>
-    <div class="metric-value">{{ stats.agencies }}</div>
-    <span class="metric-hint">Instituições parceiras</span>
-  </div>
-</div>
+</section>
 
-<div class="metric-grid mb-4">
-  <div class="metric-card">
-    <span class="metric-label">Chamados globais</span>
-    <div class="metric-value">{{ report_stats.total }}</div>
-    <span class="metric-hint">Total na plataforma</span>
+<section aria-labelledby="reports-stats-title" class="mb-4">
+  <h2 id="reports-stats-title" class="h6 fw-bold text-muted text-uppercase small">Chamados na plataforma</h2>
+  <div class="metric-grid">
+    <div class="metric-card"><span class="metric-label">Total</span><span class="metric-value">{{ report_stats.total }}</span><span class="metric-hint">em todos os municípios</span></div>
+    <div class="metric-card is-aberto"><span class="metric-label">Abertos</span><span class="metric-value">{{ report_stats.aberto }}</span><span class="metric-hint">aguardando atendimento</span></div>
+    <div class="metric-card is-em_andamento"><span class="metric-label">Em andamento</span><span class="metric-value">{{ report_stats.em_andamento }}</span><span class="metric-hint">em execução</span></div>
+    <div class="metric-card is-resolvido"><span class="metric-label">Resolvidos</span><span class="metric-value">{{ report_stats.resolvidos }}</span><span class="metric-hint">finalizados</span></div>
   </div>
-  <div class="metric-card">
-    <span class="metric-label">Abertos</span>
-    <div class="metric-value">{{ report_stats.aberto }}</div>
-    <span class="metric-hint">Aguardando atendimento</span>
-  </div>
-  <div class="metric-card">
-    <span class="metric-label">Em andamento</span>
-    <div class="metric-value">{{ report_stats.em_andamento }}</div>
-    <span class="metric-hint">Em execução pelos órgãos</span>
-  </div>
-  <div class="metric-card">
-    <span class="metric-label">Resolvidos</span>
-    <div class="metric-value">{{ report_stats.resolvidos }}</div>
-    <span class="metric-hint">Finalizados globalmente</span>
-  </div>
-</div>
+</section>
 
-<div class="card mb-4">
-  <div class="card-body d-flex flex-wrap align-items-center gap-3">
-    <h5 class="card-title mb-0">Filtrar usuários</h5>
-    <div class="btn-group">
-      <a href="{% url 'dashboard_admin' %}?filter=pending" class="btn btn-outline-primary {% if filter_type == 'pending' %}active{% endif %}">
-        Pendentes ({{ stats.pending }})
-      </a>
-      <a href="{% url 'dashboard_admin' %}?filter=approved" class="btn btn-outline-primary {% if filter_type == 'approved' %}active{% endif %}">
-        Aprovados ({{ stats.approved }})
-      </a>
-      <a href="{% url 'dashboard_admin' %}?filter=all" class="btn btn-outline-primary {% if filter_type == 'all' %}active{% endif %}">
-        Todos ({{ stats.total }})
-      </a>
-    </div>
-  </div>
-</div>
-
-<div class="card">
+<section class="card mb-4" aria-labelledby="users-title">
   <div class="card-body">
-    <h5 class="card-title mb-3">
-      {% if filter_type == 'pending' %}
-        Usuários aguardando aprovação
-      {% elif filter_type == 'approved' %}
-        Usuários aprovados
-      {% else %}
-        Todos os usuários
-      {% endif %}
-    </h5>
+    <h2 id="users-title" class="card-title">
+      {% if filter_type == 'pending' %}Usuários aguardando aprovação{% elif filter_type == 'approved' %}Usuários aprovados{% else %}Todos os usuários{% endif %}
+    </h2>
+    <nav class="segmented mb-3" aria-label="Filtrar usuários">
+      <a href="{% url 'dashboard_admin' %}?filter=pending" class="btn btn-outline-primary btn-sm {% if filter_type == 'pending' %}active{% endif %}" {% if filter_type == 'pending' %}aria-current="page"{% endif %}>Pendentes ({{ stats.pending }})</a>
+      <a href="{% url 'dashboard_admin' %}?filter=approved" class="btn btn-outline-primary btn-sm {% if filter_type == 'approved' %}active{% endif %}" {% if filter_type == 'approved' %}aria-current="page"{% endif %}>Aprovados ({{ stats.approved }})</a>
+      <a href="{% url 'dashboard_admin' %}?filter=all" class="btn btn-outline-primary btn-sm {% if filter_type == 'all' %}active{% endif %}" {% if filter_type == 'all' %}aria-current="page"{% endif %}>Todos ({{ stats.total }})</a>
+    </nav>
 
     {% if users %}
       <div class="table-responsive">
         <table class="table align-middle table-stack">
+          <caption class="visually-hidden">Lista de usuários</caption>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Nome</th>
-              <th>Email</th>
-              <th>Tipo</th>
-              <th>Documento</th>
-              <th>Telefone</th>
-              <th>Status</th>
-              <th>Criado em</th>
-              <th class="text-end">Ações</th>
+              <th scope="col">Nome</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Situação</th>
+              <th scope="col">E-mail</th>
+              <th scope="col">Documento</th>
+              <th scope="col">Cadastro</th>
+              <th scope="col" class="text-end"><span class="visually-hidden">Ações</span></th>
             </tr>
           </thead>
           <tbody>
-            {% for user in users %}
+            {% for u in users %}
             <tr>
-              <td class="fw-semibold text-primary" data-label="ID">{{ user.id }}</td>
-              <td data-label="Nome">{{ user.name }}</td>
-              <td data-label="Email">{{ user.email|default:'-' }}</td>
+              <td class="cell-main" data-label="Nome">{{ u.name }}</td>
               <td data-label="Tipo">
-                {% if user.is_admin %}
-                  <span class="badge bg-danger">Admin</span>
-                  {% if user.is_platform_owner %}
-                    <span class="badge bg-dark">Dono SaaS</span>
-                  {% endif %}
-                {% elif user.user_type == 'orgao' %}
-                  <span class="badge bg-info text-dark">Órgão</span>
-                {% else %}
-                  <span class="badge bg-primary">Cidadão</span>
-                {% endif %}
+                {% if u.is_platform_owner %}<span class="badge text-bg-dark">Dono</span>
+                {% elif u.is_admin %}<span class="badge text-bg-danger">Admin</span>
+                {% elif u.user_type == 'orgao' %}<span class="badge text-bg-info">Órgão</span>
+                {% else %}<span class="badge text-bg-primary">Cidadão</span>{% endif %}
               </td>
-              <td data-label="Documento">{{ user.cpf|default:user.cnpj|default:'-' }}</td>
-              <td data-label="Telefone">{{ user.telefone|default:'-' }}</td>
-              <td data-label="Status">
-                {% if user.is_approved %}
-                  <span class="badge bg-success">Aprovado</span>
-                {% else %}
-                  <span class="badge bg-warning text-dark">Pendente</span>
-                {% endif %}
-                {% if not user.is_active %}
-                  <span class="badge bg-secondary">Inativo</span>
-                {% endif %}
+              <td data-label="Situação">
+                {% if not u.is_active %}<span class="badge text-bg-secondary">Inativo</span>
+                {% elif u.is_approved %}<span class="badge text-bg-success">Aprovado</span>
+                {% else %}<span class="badge text-bg-warning">Pendente</span>{% endif %}
               </td>
-              <td data-label="Criado em">{{ user.created_at | format_datetime_sp }}</td>
-              <td class="text-end" data-label="Ações">
-                <div class="btn-group btn-group-sm">
-                  {% if not user.is_approved and user.is_active %}
-                    <form method="POST" action="{% url 'approve_user' user.id %}" class="d-inline">
+              <td class="cell-full" data-label="E-mail">{{ u.email|default:'-' }}</td>
+              <td data-label="Documento">{{ u.cpf|default:u.cnpj|default:'-' }}</td>
+              <td data-label="Cadastro">{{ u.created_at|format_datetime_sp:'%d/%m/%Y' }}</td>
+              <td class="text-end cell-actions" data-label="Ações">
+                {% if not u.is_approved and u.is_active %}
+                  <form method="POST" action="{% url 'approve_user' u.id %}" data-confirm="Aprovar {{ u.name }}?">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm">Aprovar <span class="visually-hidden">{{ u.name }}</span></button>
+                  </form>
+                {% endif %}
+                {% if not u.is_admin or request.user.is_platform_owner and not u.is_platform_owner %}
+                  {% if u.is_active %}
+                    <form method="POST" action="{% url 'reject_user' u.id %}" data-confirm="Desativar {{ u.name }}?">
                       {% csrf_token %}
-                      <button type="submit" class="btn btn-success" onclick="return confirm('Aprovar {{ user.name|escapejs }}?')">
-                        Aprovar
-                      </button>
+                      <button type="submit" class="btn btn-outline-danger btn-sm">Desativar <span class="visually-hidden">{{ u.name }}</span></button>
+                    </form>
+                  {% else %}
+                    <form method="POST" action="{% url 'activate_user' u.id %}" data-confirm="Reativar {{ u.name }}?">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-outline-primary btn-sm">Reativar <span class="visually-hidden">{{ u.name }}</span></button>
                     </form>
                   {% endif %}
-
-                  {% if user.is_active %}
-                    {% if not user.is_admin %}
-                      <form method="POST" action="{% url 'reject_user' user.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Desativar {{ user.name|escapejs }}?')">
-                          Desativar
-                        </button>
-                      </form>
-                    {% elif request.user.is_platform_owner and not user.is_platform_owner %}
-                      <form method="POST" action="{% url 'reject_user' user.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Desativar {{ user.name|escapejs }}?')">
-                          Desativar
-                        </button>
-                      </form>
-                    {% endif %}
-                  {% else %}
-                    {% if not user.is_admin %}
-                      <form method="POST" action="{% url 'activate_user' user.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Reativar {{ user.name|escapejs }}?')">
-                          Reativar
-                        </button>
-                      </form>
-                    {% elif request.user.is_platform_owner and not user.is_platform_owner %}
-                      <form method="POST" action="{% url 'activate_user' user.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Reativar {{ user.name|escapejs }}?')">
-                          Reativar
-                        </button>
-                      </form>
-                    {% endif %}
-                  {% endif %}
-
-                  <a href="{% url 'edit_user_by_admin' user.id %}" class="btn btn-outline-secondary">
-                    Editar perfil
-                  </a>
-                </div>
+                {% endif %}
+                <a href="{% url 'edit_user_by_admin' u.id %}" class="btn btn-outline-secondary btn-sm">
+                  <i class="bi bi-pencil" aria-hidden="true"></i> Editar <span class="visually-hidden">{{ u.name }}</span>
+                </a>
               </td>
             </tr>
             {% endfor %}
@@ -188,59 +104,45 @@
       </div>
     {% else %}
       <div class="datatable-empty">
-        <i class="bi bi-people fs-1 d-block mb-3"></i>
-        <p class="mb-2 fw-semibold">Nenhum registro encontrado com o filtro atual.</p>
-        <p class="text-muted mb-0">Altere o filtro acima para visualizar outros usuários.</p>
+        <i class="bi bi-people fs-1 d-block mb-2" aria-hidden="true"></i>
+        <p class="fw-semibold mb-0">Nenhum usuário neste filtro.</p>
       </div>
     {% endif %}
   </div>
-</div>
+</section>
 
-<div class="card mt-4">
+<section class="card" aria-labelledby="recent-title">
   <div class="card-body">
-    <h5 class="card-title mb-3">Relatórios globais recentes</h5>
+    <h2 id="recent-title" class="card-title">Chamados mais urgentes</h2>
     {% if recent_reports %}
       <div class="table-responsive">
-        <table class="table align-middle table-stack">
+        <table class="table align-middle table-stack mb-0">
+          <caption class="visually-hidden">Chamados com mais votos de urgência</caption>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Título</th>
-              <th>Município</th>
-              <th>Urgência</th>
-              <th>Status</th>
-              <th>Criado em</th>
-              <th class="text-end">Ações</th>
+              <th scope="col">Chamado</th>
+              <th scope="col">Status</th>
+              <th scope="col">Município</th>
+              <th scope="col">Urgência</th>
+              <th scope="col">Data</th>
             </tr>
           </thead>
           <tbody>
             {% for report in recent_reports %}
               <tr>
-                <td class="fw-semibold text-primary" data-label="ID">#{{ report.id }}</td>
-                <td data-label="Título">{{ report.title }}</td>
+                <td class="cell-main" data-label="Chamado"><a href="{% url 'report_detail' report.id %}" class="text-reset">#{{ report.id }} · {{ report.title }}</a></td>
+                <td data-label="Status"><span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span></td>
                 <td data-label="Município">{{ report.municipio_nome|default:'-' }}/{{ report.municipio_uf|default:'-' }}</td>
-                <td data-label="Urgência">
-                  <span class="badge bg-danger-subtle text-danger fw-semibold">
-                    <i class="bi bi-arrow-up-circle"></i> {{ report.urgency_votes_count }}
-                  </span>
-                </td>
-                <td data-label="Status">
-                  <span class="badge bg-{{ report.status_color }}">{{ report.status_display }}</span>
-                </td>
-                <td data-label="Criado em">{{ report.created_at | format_datetime_sp }}</td>
-                <td class="text-end" data-label="Ações">
-                  <a href="{% url 'report_detail' report.id %}" class="btn btn-outline-primary btn-sm">
-                    Ver chamado
-                  </a>
-                </td>
+                <td data-label="Urgência">{{ report.urgency_votes_count }} voto(s)</td>
+                <td data-label="Data">{{ report.created_at|format_datetime_sp:'%d/%m/%Y' }}</td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     {% else %}
-      <p class="text-muted mb-0">Ainda não existem chamados cadastrados na plataforma.</p>
+      <p class="text-muted mb-0">Ainda não há chamados na plataforma.</p>
     {% endif %}
   </div>
-</div>
+</section>
 {% endblock %}

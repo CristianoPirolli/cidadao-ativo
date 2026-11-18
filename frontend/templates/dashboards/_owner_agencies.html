@@ -1,0 +1,62 @@
+{% load custom_filters %}
+{% if agencies %}
+  <div class="table-responsive">
+    <table class="table align-middle table-stack mb-0">
+      <caption class="visually-hidden">Órgãos públicos</caption>
+      <thead>
+        <tr>
+          <th scope="col">Órgão</th>
+          <th scope="col">Situação</th>
+          <th scope="col">Município</th>
+          <th scope="col">CNPJ</th>
+          <th scope="col">E-mail</th>
+          <th scope="col">Cadastro</th>
+          <th scope="col" class="text-end"><span class="visually-hidden">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for agency in agencies %}
+        <tr>
+          <td class="cell-main" data-label="Órgão">{{ agency.orgao_nome|default:agency.name }}</td>
+          <td data-label="Situação">
+            {% if not agency.is_active %}<span class="badge text-bg-secondary">Inativo</span>
+            {% elif agency.is_approved %}<span class="badge text-bg-success">Aprovado</span>
+            {% else %}<span class="badge text-bg-warning">Pendente</span>{% endif %}
+          </td>
+          <td data-label="Município">{{ agency.municipio_nome|default:'-' }}/{{ agency.municipio_uf|default:'-' }}</td>
+          <td data-label="CNPJ">{{ agency.cnpj|default:'-' }}</td>
+          <td class="cell-full" data-label="E-mail">{{ agency.email|default:'-' }}</td>
+          <td data-label="Cadastro">{{ agency.created_at|format_datetime_sp:'%d/%m/%Y' }}</td>
+          <td class="text-end cell-actions" data-label="Ações">
+            {% if not agency.is_approved and agency.is_active %}
+              <form method="POST" action="{% url 'approve_user' agency.id %}" data-confirm="Aprovar o órgão {{ agency.orgao_nome|default:agency.name }}?">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg" aria-hidden="true"></i> Aprovar</button>
+              </form>
+            {% endif %}
+            {% if agency.is_active %}
+              <form method="POST" action="{% url 'reject_user' agency.id %}" data-confirm="{% if agency.is_approved %}Desativar{% else %}Recusar{% endif %} o órgão {{ agency.orgao_nome|default:agency.name }}?">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm">{% if agency.is_approved %}Desativar{% else %}Recusar{% endif %}</button>
+              </form>
+            {% else %}
+              <form method="POST" action="{% url 'activate_user' agency.id %}" data-confirm="Reativar o órgão {{ agency.orgao_nome|default:agency.name }}?">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary btn-sm">Reativar</button>
+              </form>
+            {% endif %}
+            <a href="{% url 'edit_user_by_admin' agency.id %}" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-pencil" aria-hidden="true"></i> Editar <span class="visually-hidden">{{ agency.orgao_nome|default:agency.name }}</span>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="datatable-empty">
+    <i class="bi bi-building-check fs-1 d-block mb-2" aria-hidden="true"></i>
+    <p class="fw-semibold mb-0">Nenhum órgão nesta lista.</p>
+  </div>
+{% endif %}

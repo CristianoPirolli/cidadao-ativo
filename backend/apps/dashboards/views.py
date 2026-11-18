@@ -12,7 +12,7 @@ from apps.dashboards.services.dashboard import (
     get_agency_dashboard_data,
     get_citizen_dashboard_data,
 )
-from apps.reports.models import Report, ReportStatus
+from apps.reports.models import Report, ReportCategory, ReportStatus
 
 
 def _dashboard_error(request, exc):
@@ -53,7 +53,7 @@ def _build_map_context(reports, padding=0.02):
         {
             'id': report.id,
             'title': report.title,
-            'category': report.category,
+            'category': report.get_category_display(),
             'status': report.status_display,
             'status_raw': report.status,
             'lat': report.lat,
@@ -109,10 +109,15 @@ def dashboard_agency(request):
         'pending_citizens': data['pending_citizens'],
         'filters': data['filters'],
         'map_reports': map_reports,
-        'map_bounds': map_bounds,
-        'map_center': map_center,
+        'agency_map_config': {
+            'reports': map_reports,
+            'bounds': map_bounds,
+            'center': map_center,
+            'heatPoints': data.get('heat_points', []),
+        },
+        'statuses': ReportStatus.choices,
+        'categories': ReportCategory.choices,
         'resolution_metrics': data.get('resolution_metrics', {}),
-        'heat_points': data.get('heat_points', []),
         'hot_regions': data.get('hot_regions', []),
     })
 

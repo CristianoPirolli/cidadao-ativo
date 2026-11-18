@@ -1,116 +1,114 @@
 {% extends 'base.html' %}
-{% block title %}Editar usuário - Cidadão Ativo{% endblock %}
+{% block title %}Editar {{ target.name }} · Cidadão Ativo{% endblock %}
 {% block content %}
-<div class="dashboard-header">
-  <div>
-    <h2 class="mb-1">Editar perfil de usuário</h2>
-    <p class="text-muted mb-0">Atualize dados cadastrais com controle administrativo.</p>
-  </div>
-  <a href="{% url 'dashboard_admin' %}?filter=all" class="btn btn-outline-secondary">
-    <i class="bi bi-arrow-left"></i> Voltar
+<nav class="mb-3" aria-label="Voltar">
+  <a href="{% url 'dashboard_admin' %}?filter=all" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar à administração
   </a>
+</nav>
+
+<div class="page-header">
+  <div>
+    <h1>Editar usuário</h1>
+    <p class="text-muted">
+      {{ target.name }} ·
+      {% if target.is_admin %}Administrador{% elif target.user_type == 'orgao' %}Órgão público{% else %}Cidadão{% endif %}
+    </p>
+  </div>
 </div>
 
-<div class="card">
+<section class="card mb-3" aria-labelledby="profile-title">
   <div class="card-body">
+    <h2 id="profile-title" class="card-title">Dados cadastrais</h2>
     <form method="POST" class="row g-3">
       {% csrf_token %}
-
       <div class="col-md-6">
         <label for="name" class="form-label">Nome</label>
-        <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+        <input type="text" class="form-control" id="name" name="name" value="{{ target.name }}" autocomplete="off" required>
       </div>
-
       <div class="col-md-6">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" value="{{ user.email|default:'' }}">
+        <label for="email" class="form-label">E-mail</label>
+        <input type="email" class="form-control" id="email" name="email" value="{{ target.email|default:'' }}" inputmode="email" autocapitalize="none">
       </div>
-
       <div class="col-md-6">
         <label for="telefone" class="form-label">Telefone</label>
-        <input type="text" class="form-control" id="telefone" name="telefone" value="{{ user.telefone|default:'' }}">
+        <input type="tel" class="form-control" id="telefone" name="telefone" value="{{ target.telefone|default:'' }}" inputmode="tel">
       </div>
 
-      <div class="col-md-6">
-        <label class="form-label">Tipo de usuário</label>
-        <input type="text" class="form-control" value="{{ user.user_type }}" disabled>
-      </div>
-
-      {% if user.user_type == 'orgao' %}
+      {% if target.user_type == 'orgao' %}
         <div class="col-md-6">
           <label for="orgao_nome" class="form-label">Nome do órgão</label>
-          <input type="text" class="form-control" id="orgao_nome" name="orgao_nome" value="{{ user.orgao_nome|default:'' }}">
+          <input type="text" class="form-control" id="orgao_nome" name="orgao_nome" value="{{ target.orgao_nome|default:'' }}">
         </div>
-        <div class="col-md-2">
-          <label for="municipio_ibge_id" class="form-label">Município IBGE</label>
-          <input type="text" class="form-control" id="municipio_ibge_id" name="municipio_ibge_id" value="{{ user.municipio_ibge_id|default:'' }}">
+        <div class="col-6 col-md-3">
+          <label for="municipio_ibge_id" class="form-label">Código IBGE</label>
+          <input type="text" class="form-control" id="municipio_ibge_id" name="municipio_ibge_id" value="{{ target.municipio_ibge_id|default:'' }}" inputmode="numeric">
         </div>
-        <div class="col-md-3">
-          <label for="municipio_nome" class="form-label">Município</label>
-          <input type="text" class="form-control" id="municipio_nome" name="municipio_nome" value="{{ user.municipio_nome|default:'' }}">
-        </div>
-        <div class="col-md-1">
+        <div class="col-6 col-md-2">
           <label for="municipio_uf" class="form-label">UF</label>
-          <input type="text" class="form-control" id="municipio_uf" name="municipio_uf" value="{{ user.municipio_uf|default:'' }}" maxlength="2">
+          <input type="text" class="form-control" id="municipio_uf" name="municipio_uf" value="{{ target.municipio_uf|default:'' }}" maxlength="2" autocapitalize="characters">
         </div>
-      {% endif %}
-
-      {% if user.user_type == 'cidadao' %}
-        <div class="col-md-2">
-          <label for="municipio_origem_id" class="form-label">Município IBGE</label>
-          <input type="text" class="form-control" id="municipio_origem_id" name="municipio_origem_id" value="{{ user.municipio_origem_id|default:'' }}">
+        <div class="col-md-7">
+          <label for="municipio_nome" class="form-label">Município</label>
+          <input type="text" class="form-control" id="municipio_nome" name="municipio_nome" value="{{ target.municipio_nome|default:'' }}">
         </div>
-        <div class="col-md-3">
-          <label for="municipio_origem_nome" class="form-label">Município</label>
-          <input type="text" class="form-control" id="municipio_origem_nome" name="municipio_origem_nome" value="{{ user.municipio_origem_nome|default:'' }}">
+      {% elif target.user_type == 'cidadao' %}
+        <div class="col-6 col-md-3">
+          <label for="municipio_origem_id" class="form-label">Código IBGE</label>
+          <input type="text" class="form-control" id="municipio_origem_id" name="municipio_origem_id" value="{{ target.municipio_origem_id|default:'' }}" inputmode="numeric">
         </div>
-        <div class="col-md-1">
+        <div class="col-6 col-md-2">
           <label for="municipio_origem_uf" class="form-label">UF</label>
-          <input type="text" class="form-control" id="municipio_origem_uf" name="municipio_origem_uf" value="{{ user.municipio_origem_uf|default:'' }}" maxlength="2">
+          <input type="text" class="form-control" id="municipio_origem_uf" name="municipio_origem_uf" value="{{ target.municipio_origem_uf|default:'' }}" maxlength="2" autocapitalize="characters">
+        </div>
+        <div class="col-md-7">
+          <label for="municipio_origem_nome" class="form-label">Município</label>
+          <input type="text" class="form-control" id="municipio_origem_nome" name="municipio_origem_nome" value="{{ target.municipio_origem_nome|default:'' }}">
         </div>
       {% endif %}
 
-      <div class="col-12 d-flex gap-2">
+      <div class="col-12 d-grid d-md-flex gap-2">
         <button type="submit" class="btn btn-primary">Salvar alterações</button>
         <a href="{% url 'dashboard_admin' %}?filter=all" class="btn btn-outline-secondary">Cancelar</a>
       </div>
     </form>
+  </div>
+</section>
 
-    {% if request.user.is_platform_owner %}
-    <hr class="my-4">
-    <h6 class="mb-3 text-danger"><i class="bi bi-key-fill me-2"></i>Resetar senha</h6>
-    <form method="POST" action="{% url 'reset_user_password' user.id %}" class="row g-3">
+{% if request.user.is_platform_owner %}
+<section class="card border-start border-4 border-danger" aria-labelledby="reset-title">
+  <div class="card-body">
+    <h2 id="reset-title" class="card-title text-danger-emphasis"><i class="bi bi-key" aria-hidden="true"></i> Redefinir senha</h2>
+    <form method="POST" action="{% url 'reset_user_password' target.id %}" class="row g-3" id="resetPasswordForm">
       {% csrf_token %}
-      <div class="col-md-5">
+      <div class="col-md-6">
         <label for="new_password" class="form-label">Nova senha</label>
-        <input type="password" class="form-control" id="new_password" name="new_password"
-               placeholder="Mínimo 8 caracteres" minlength="8" required>
+        <input type="password" class="form-control" id="new_password" name="new_password" autocomplete="new-password" minlength="8" aria-describedby="new_password_help" required>
+        <div id="new_password_help" class="form-text">Mínimo de 8 caracteres.</div>
       </div>
-      <div class="col-md-5">
-        <label for="confirm_password" class="form-label">Confirmar senha</label>
-        <input type="password" class="form-control" id="confirm_password" name="confirm_password"
-               placeholder="Repita a senha" minlength="8" required>
+      <div class="col-md-6">
+        <label for="confirm_password" class="form-label">Confirmar nova senha</label>
+        <input type="password" class="form-control" id="confirm_password" name="confirm_password" autocomplete="new-password" minlength="8" required>
       </div>
-      <div class="col-md-2 d-flex align-items-end">
-        <button type="submit" class="btn btn-danger w-100"
-                onclick="return validatePasswordReset()">
-          <i class="bi bi-key me-1"></i>Resetar
-        </button>
+      <div class="col-12">
+        <button type="submit" class="btn btn-danger w-100">Redefinir senha de {{ target.name }}</button>
       </div>
     </form>
-    {% endif %}
   </div>
-</div>
+</section>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function validatePasswordReset() {
-  const p1 = document.getElementById('new_password').value;
-  const p2 = document.getElementById('confirm_password').value;
-  if (p1 !== p2) { alert('As senhas não coincidem.'); return false; }
-  if (p1.length < 8) { alert('A senha deve ter pelo menos 8 caracteres.'); return false; }
-  return confirm('Resetar a senha deste usuário?');
-}
+  const resetForm = document.getElementById('resetPasswordForm');
+  if (resetForm) {
+    resetForm.addEventListener('submit', (event) => {
+      const p1 = document.getElementById('new_password');
+      const p2 = document.getElementById('confirm_password');
+      p2.setCustomValidity(p1.value === p2.value ? '' : 'As senhas não são iguais.');
+      if (!resetForm.reportValidity() || !window.confirm('Redefinir a senha deste usuário?')) event.preventDefault();
+    });
+  }
 </script>
 {% endblock %}
