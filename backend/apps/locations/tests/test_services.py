@@ -67,3 +67,36 @@ def test_get_city_unknown_municipio(municipios):
         result = geocoding.get_city_from_location(-27.0, -49.0)
     assert result['valid'] is False
     assert result['municipio_completo'] == 'Cidade Inexistente/SC'
+
+
+@pytest.fixture
+def clear_cache():
+    from django.core.cache import cache
+    cache.clear()
+    yield
+    cache.clear()
+
+
+def test_geocoding_result_is_cached(municipios, clear_cache):
+    address = {'address': {'city': 'Florianópolis', 'state': 'Santa Catarina'}}
+    with mock.patch.object(geocoding, 'reverse_geocode', return_value=address) as nominatim:
+        first = geocoding.get_city_from_location(-27.59541, -48.54801)
+        # Ponto a poucos metros: mesma célula do cache, sem nova consulta
+        second = geocoding.get_city_from_location(-27.59543, -48.54799)
+    assert first == second and first['valid']
+    assert nominatim.call_count == 1
+
+
+def test_failed_geocoding_is_not_cached(municipios, clear_cache):
+    with mock.patch.object(geocoding, 'reverse_geocode', return_value=None) as nominatim:
+        geocoding.get_city_from_location(-27.0, -49.0)
+        geocoding.get_city_from_location(-27.0, -49.0)
+    assert nominatim.call_count == 2
+
+
+def test_nominatim_calls_are_spaced(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr(geocoding.time, 'sleep', sleeps.append)
+    monkeypatch.setattr(geocoding, '_last_request_at', geocoding.time.monotonic())
+    geocoding._wait_for_rate_limit()
+    assert sleeps and 0 < sleeps[0] <= geocoding.MIN_INTERVAL_SECONDS

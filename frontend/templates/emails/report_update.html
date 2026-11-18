@@ -1,0 +1,21 @@
+<html>
+  <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #334155;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #1557c0;">{% if status_label %}Seu chamado foi atualizado{% else %}Nova mensagem sobre seu chamado{% endif %}</h2>
+      <p>Olá, <strong>{{ name }}</strong>!</p>
+      <p>Chamado <strong>#{{ report.id }} · {{ report.title }}</strong></p>
+      {% if status_label %}
+        <p>Novo status: <strong>{{ status_label }}</strong></p>
+      {% endif %}
+      {% if comment %}
+        <div style="background: #f1f5f9; border-left: 4px solid #1f6feb; padding: 12px 16px; margin: 16px 0; white-space: pre-line;">
+          <strong>{{ agency_name }}:</strong><br>{{ comment }}
+        </div>
+      {% endif %}
+      <p style="margin: 28px 0;">
+        <a href="{{ link }}" style="background: #1f6feb; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Ver chamado</a>
+      </p>
+      <p style="font-size: 13px; color: #475569;">Você recebe este e-mail porque abriu este chamado no Cidadão Ativo.</p>
+    </div>
+  </body>
+</html>

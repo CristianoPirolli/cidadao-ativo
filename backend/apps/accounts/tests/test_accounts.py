@@ -121,3 +121,17 @@ def test_registration_rejects_weak_password(client, png_file):
         'municipio_origem_uf': MUNICIPIO['uf'], 'residence_proof_type': 'conta_luz', 'residence_proof': png_file,
     })
     assert not User.objects.filter(email='fraco@example.com').exists()
+
+
+@pytest.mark.django_db
+def test_rejected_citizen_receives_reason_by_email(client, agency, citizen):
+    from unittest import mock
+
+    citizen.is_approved = False
+    citizen.save()
+    client.force_login(agency)
+    with mock.patch('apps.accounts.services.users.send_templated_email') as send:
+        client.post(reverse('agency_reject_citizen', args=[citizen.id]), {'rejection_reason': 'Comprovante ilegível'})
+    subject, recipients, template, context = send.call_args.args
+    assert recipients == ['maria@example.com']
+    assert context['reason'] == 'Comprovante ilegível'

@@ -1,0 +1,13 @@
+<html>
+  <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #334155;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #b91c1c;">Cadastro não aprovado</h2>
+      <p>Olá, <strong>{{ name }}</strong>.</p>
+      <p>Seu cadastro no <strong>Cidadão Ativo</strong> não foi aprovado por {{ agency_name }} ({{ municipio }}).</p>
+      <div style="background: #fef2f2; border-left: 4px solid #b91c1c; padding: 12px 16px; margin: 16px 0; white-space: pre-line;">
+        <strong>Motivo:</strong><br>{{ reason }}
+      </div>
+      <p>Para corrigir o cadastro (por exemplo, enviar outro comprovante), procure a prefeitura do seu município.</p>
+    </div>
+  </body>
+</html>
