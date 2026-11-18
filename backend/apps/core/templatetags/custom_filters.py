@@ -70,3 +70,14 @@ def format_duration(seconds):
             return f'{d}d {h}h' if h else f'{d}d'
     except Exception:
         return str(seconds)
+
+
+@register.filter
+def status_label(value):
+    """Nome legível de um status de chamado (ex.: ``em_andamento`` → ``Em Andamento``)."""
+    from apps.reports.models import ReportStatus
+
+    try:
+        return ReportStatus(value).label
+    except ValueError:
+        return value or '-'

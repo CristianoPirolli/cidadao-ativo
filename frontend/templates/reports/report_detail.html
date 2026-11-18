@@ -1,334 +1,166 @@
 {% extends 'base.html' %}
 {% load static custom_filters %}
+{% block title %}Chamado #{{ report.id }} · Cidadão Ativo{% endblock %}
+{% block map_css %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
+{% block map_js %}<script src="{% static 'vendor/leaflet/leaflet.js' %}" defer></script>{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-  <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Chamado #{{ report.id }}</h2>
-    <a href="{% if user.is_citizen %}/dashboard/cidadao{% elif user.is_admin %}/dashboard/admin{% else %}/dashboard/orgao{% endif %}" class="btn btn-outline-secondary">
-      <i class="bi bi-arrow-left"></i> Voltar
-    </a>
-  </div>
+<nav class="mb-3" aria-label="Voltar">
+  <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar ao painel
+  </a>
+</nav>
 
-  <div class="row">
-    <!-- Informações do Chamado -->
-    <div class="col-md-8">
-      <div class="card shadow-sm mb-4">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <h4>{{ report.title }}</h4>
-            <div class="d-flex gap-2 align-items-center">
-              <span class="badge bg-danger-subtle text-danger fs-6">
-                <i class="bi bi-arrow-up-circle"></i>
-                <span id="detail-vote-count">{{ report.urgency_votes_count }}</span> voto(s)
-              </span>
-              <span class="badge bg-{{ report.status_color }} fs-6">
-                {{ report.status_display }}
-              </span>
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <strong>Descrição:</strong>
-            <p class="mt-2">{{ report.description }}</p>
-          </div>
-
-          <div class="row mb-3">
-            <div class="col-6 col-md-4 mb-3 mb-md-0">
-              <strong>Categoria:</strong><br>
-              <span class="badge bg-secondary">{{ report.category }}</span>
-            </div>
-            <div class="col-6 col-md-4 mb-3 mb-md-0">
-              <strong>Data de Criação:</strong><br>
-              {{ report.created_at | format_datetime_sp:'%d/%m/%Y às %H:%M' }}
-            </div>
-            <div class="col-12 col-md-4">
-              <strong>Última Atualização:</strong><br>
-              {{ report.updated_at | format_datetime_sp:'%d/%m/%Y às %H:%M' }}
-            </div>
-          </div>
-
-          {% if report.user %}
-          <div class="mb-3">
-            <strong>Criado por:</strong><br>
-            {{ report.user.name }}
-            {% if user.is_agency %}
-              <br><small class="text-muted">{{ report.user.email }}</small>
-              {% if report.user.telefone %}
-                <br><small class="text-muted">Telefone: {{ report.user.telefone }}</small>
-              {% endif %}
-            {% endif %}
-          </div>
-          {% endif %}
-
-          {% if report.assigned_user %}
-          <div class="mb-3">
-            <strong>Responsável:</strong><br>
-            {{ report.assigned_user.name }}
-          </div>
-          {% endif %}
-
-          {% if report.image_path %}
-          <div class="mb-3">
-            <strong>Imagem:</strong><br>
-            <img src="{% get_media_prefix %}{{ report.image_path|basename }}" class="img-fluid rounded mt-2 report-detail-image" alt="Imagem do chamado">
-          </div>
-          {% endif %}
-
-          <div class="mb-3">
-            <strong>Localização:</strong><br>
-            Latitude: {{ report.lat }}, Longitude: {{ report.lng }}
-            <div id="report-map" class="mt-2 rounded border"></div>
-          </div>
-
-          {% if user.is_citizen and report.user_id != user.id %}
-          <div class="mb-3">
-            <button
-              type="button"
-              class="btn btn-outline-danger"
-              onclick="voteUrgencyDetail({{ report.id }})"
-              id="detail-vote-btn"
-              {% if has_voted_urgency %}disabled{% endif %}
-            >
-              <i class="bi bi-hand-thumbs-up"></i>
-              {% if has_voted_urgency %}Urgência votada{% else %}Votar urgência neste local{% endif %}
-            </button>
-            <small class="d-block text-muted mt-2">
-              O voto só é permitido próximo ao ponto exato do chamado.
-            </small>
-          </div>
-          {% endif %}
+<div class="row g-3 g-lg-4">
+  <div class="col-lg-8">
+    <article class="card mb-3" aria-labelledby="report-title">
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <span class="badge badge-status {{ report.status }}">{{ report.status_display }}</span>
+          <span class="badge badge-category"><i class="bi bi-tag" aria-hidden="true"></i> {{ report.get_category_display }}</span>
+          <span class="badge badge-votes"><i class="bi bi-arrow-up-circle" aria-hidden="true"></i>
+            <span data-vote-count="{{ report.id }}">{{ report.urgency_votes_count }}</span> voto(s) de urgência</span>
         </div>
+        <p class="text-muted small mb-1">Chamado #{{ report.id }}</p>
+        <h1 id="report-title" class="h4 fw-bold">{{ report.title }}</h1>
+        <p class="mb-3" style="white-space: pre-line;">{{ report.description }}</p>
+
+        {% if report.image_path %}
+          <a href="{% get_media_prefix %}{{ report.image_path|basename }}" target="_blank" rel="noopener" class="d-block mb-3">
+            <img src="{% get_media_prefix %}{{ report.image_path|basename }}" class="rounded report-detail-image"
+                 alt="Foto enviada com o chamado: {{ report.title }}" loading="lazy">
+            <span class="visually-hidden">(abre a foto em tamanho real)</span>
+          </a>
+        {% endif %}
+
+        <dl class="detail-list mb-3">
+          <div>
+            <dt>Aberto em</dt>
+            <dd>{{ report.created_at|format_datetime_sp:'%d/%m/%Y às %H:%M' }}</dd>
+          </div>
+          <div>
+            <dt>Atualizado em</dt>
+            <dd>{{ report.updated_at|format_datetime_sp:'%d/%m/%Y às %H:%M' }}</dd>
+          </div>
+          {% if report.user %}
+          <div>
+            <dt>Aberto por</dt>
+            <dd>
+              {{ report.user.name }}
+              {% if user.is_agency %}
+                {% if report.user.email %}<br><a href="mailto:{{ report.user.email }}">{{ report.user.email }}</a>{% endif %}
+                {% if report.user.telefone %}<br><a href="tel:{{ report.user.telefone }}">{{ report.user.telefone }}</a>{% endif %}
+              {% endif %}
+            </dd>
+          </div>
+          {% endif %}
+          <div>
+            <dt>Responsável</dt>
+            <dd>{{ report.assigned_user.orgao_nome|default:report.assigned_user.name|default:'Ainda não atribuído' }}</dd>
+          </div>
+          {% if report.municipio_nome %}
+          <div class="detail-full">
+            <dt>Município</dt>
+            <dd>{{ report.municipio_nome }}/{{ report.municipio_uf }}</dd>
+          </div>
+          {% endif %}
+        </dl>
+
+        <h2 class="h6 fw-bold">Local</h2>
+        <div class="report-map mb-2" data-static-map data-lat="{{ report.lat|stringformat:'f' }}" data-lng="{{ report.lng|stringformat:'f' }}"
+             data-title="{{ report.title }}" role="region" aria-label="Mapa com o local do chamado"></div>
+        <a class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener"
+           href="https://www.google.com/maps/search/?api=1&query={{ report.lat|stringformat:'f' }},{{ report.lng|stringformat:'f' }}">
+          <i class="bi bi-sign-turn-right" aria-hidden="true"></i> Abrir rota no app de mapas
+        </a>
+
+        {% if user.is_citizen and report.user_id != user.id %}
+        <div class="mt-3 pt-3 border-top">
+          <button type="button" class="btn {% if has_voted_urgency %}btn-secondary{% else %}btn-outline-danger{% endif %} w-100"
+                  data-vote-report="{{ report.id }}" {% if has_voted_urgency %}disabled{% endif %}>
+            <i class="bi {% if has_voted_urgency %}bi-check-circle{% else %}bi-hand-thumbs-up{% endif %}" aria-hidden="true"></i>
+            {% if has_voted_urgency %}Urgência votada{% else %}Votar urgência neste local{% endif %}
+          </button>
+          <p class="small text-muted mt-2 mb-0">O voto só vale se você estiver perto do local do chamado.</p>
+        </div>
+        {% endif %}
       </div>
+    </article>
 
-      <!-- Ações para órgãos -->
-      {% if user.is_agency %}
-      <div class="card shadow-sm mb-4">
-        <div class="card-body">
-          <h5 class="card-title">Gerenciar Chamado</h5>
-
-          <!-- Alterar Status -->
+    {% if user.is_agency %}
+    <section class="card mb-3" aria-labelledby="manage-title">
+      <div class="card-body">
+        <h2 id="manage-title" class="card-title">Atualizar chamado</h2>
+        <form id="report-manage-form" data-report-id="{{ report.id }}" data-current-status="{{ report.status }}">
           <div class="mb-3">
-            <label for="statusSelect" class="form-label fw-bold">Alterar Status:</label>
-            <select class="form-select" id="statusSelect">
-              <option value="aberto" {% if report.status == 'aberto' %}selected{% endif %}>Aberto</option>
-              <option value="visualizado" {% if report.status == 'visualizado' %}selected{% endif %}>Visualizado</option>
-              <option value="em_andamento" {% if report.status == 'em_andamento' %}selected{% endif %}>Em Andamento</option>
-              <option value="resolvido" {% if report.status == 'resolvido' %}selected{% endif %}>Resolvido</option>
-              <option value="rejeitado" {% if report.status == 'rejeitado' %}selected{% endif %}>Rejeitado</option>
+            <label for="status-select" class="form-label">Status</label>
+            <select class="form-select" id="status-select" name="status">
+              {% for value, label in statuses %}
+                <option value="{{ value }}" {% if report.status == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
             </select>
           </div>
-
-          <!-- Adicionar Comentário -->
           <div class="mb-3">
-            <label for="commentText" class="form-label fw-bold">Adicionar Comentário:</label>
-            <textarea class="form-control" id="commentText" rows="3" placeholder="Descreva a ação tomada ou atualizações sobre o chamado..."></textarea>
+            <label for="comment-text" class="form-label">Comentário para o cidadão</label>
+            <textarea class="form-control" id="comment-text" name="comment" rows="3"
+                      placeholder="Ex.: Equipe agendada para amanhã pela manhã."></textarea>
           </div>
-
-          <button type="button" class="btn btn-primary" onclick="updateReport()">
-            <i class="bi bi-save"></i> Salvar Alterações
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-check2" aria-hidden="true"></i> Salvar atualização
           </button>
-        </div>
+        </form>
       </div>
-      {% endif %}
-    </div>
-
-    <!-- Histórico -->
-    <div class="col-md-4">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h5 class="card-title mb-4">
-            <i class="bi bi-clock-history"></i> Histórico
-          </h5>
-
-          {% if history %}
-            <div class="timeline">
-              {% for entry in history %}
-              <div class="timeline-item mb-4">
-                <div class="d-flex">
-                  <div class="timeline-marker me-3">
-                    {% if entry.action == 'criado' %}
-                      <i class="bi bi-plus-circle-fill text-primary"></i>
-                    {% elif entry.action == 'visualizado' %}
-                      <i class="bi bi-eye-fill text-info"></i>
-                    {% elif entry.action == 'status_alterado' %}
-                      <i class="bi bi-arrow-repeat text-warning"></i>
-                    {% elif entry.action == 'comentario' %}
-                      <i class="bi bi-chat-fill text-success"></i>
-                    {% elif entry.action == 'voto_urgencia' %}
-                      <i class="bi bi-hand-thumbs-up-fill text-danger"></i>
-                    {% endif %}
-                  </div>
-                  <div class="flex-grow-1">
-                    <div class="fw-bold">
-                      {% if entry.action == 'criado' %}
-                        Chamado Criado
-                      {% elif entry.action == 'visualizado' %}
-                        Visualizado
-                      {% elif entry.action == 'status_alterado' %}
-                        Status Alterado
-                      {% elif entry.action == 'comentario' %}
-                        Comentário Adicionado
-                      {% elif entry.action == 'voto_urgencia' %}
-                        Voto de Urgência
-                      {% endif %}
-                    </div>
-                    <div class="text-muted small">
-                      {{ entry.created_at | format_datetime_sp }}
-                    </div>
-                    {% if entry.user %}
-                    <div class="text-muted small">
-                      por {{ entry.user.name }}
-                      {% if entry.user.user_type == 'orgao' %}
-                        <span class="badge bg-secondary">Órgão</span>
-                      {% endif %}
-                    </div>
-                    {% endif %}
-                    {% if entry.old_status and entry.new_status %}
-                    <div class="small mt-1">
-                      <span class="badge bg-secondary">{{ entry.old_status }}</span>
-                      <i class="bi bi-arrow-right"></i>
-                      <span class="badge bg-primary">{{ entry.new_status }}</span>
-                    </div>
-                    {% endif %}
-                    {% if entry.comment %}
-                    <div class="mt-2 p-2 bg-light rounded">
-                      <small>{{ entry.comment }}</small>
-                    </div>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="text-muted text-center">Nenhum histórico disponível.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
+    </section>
+    {% endif %}
   </div>
-</div>
 
-<script>
-const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-// Função para atualizar o status e adicionar comentário
-async function updateReport() {
-  const status = document.getElementById('statusSelect').value;
-  const comment = document.getElementById('commentText').value.trim();
-
-  if (!comment && status === '{{ report.status }}') {
-    alert('Nenhuma alteração foi feita.');
-    return;
-  }
-
-  try {
-    // Atualizar status se mudou
-    if (status !== '{{ report.status }}') {
-      const response = await fetch('/api/reports/{{ report.id }}/update', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
-        },
-        body: JSON.stringify({ status, comment })
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao atualizar status');
-      }
-    }
-    // Apenas adicionar comentário se status não mudou
-    else if (comment) {
-      const response = await fetch('/api/reports/{{ report.id }}/comment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken,
-        },
-        body: JSON.stringify({ comment })
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao adicionar comentário');
-      }
-    }
-
-    alert('Chamado atualizado com sucesso!');
-    location.reload();
-  } catch (error) {
-    console.error('Erro:', error);
-    alert('Erro ao atualizar o chamado. Tente novamente.');
-  }
-}
-
-// Inicializar mapa com a localização do chamado
-document.addEventListener('DOMContentLoaded', () => {
-  const mapDiv = document.getElementById('report-map');
-
-  // Placeholder para integração com Leaflet ou Google Maps
-  if (mapDiv) {
-    mapDiv.innerHTML = `
-      <div class="d-flex align-items-center justify-content-center h-100 bg-light">
-        <p class="text-muted">
-          Mapa: {{ report.lat }}, {{ report.lng }}<br>
-          <small>(Integração com Leaflet/Google Maps)</small>
-        </p>
+  <aside class="col-lg-4" aria-labelledby="history-title">
+    <div class="card">
+      <div class="card-body">
+        <h2 id="history-title" class="card-title mb-3"><i class="bi bi-clock-history" aria-hidden="true"></i> Histórico</h2>
+        {% if history %}
+          <ol class="timeline">
+            {% for entry in history %}
+            <li class="timeline-item">
+              <span class="timeline-marker" aria-hidden="true">
+                {% if entry.action == 'criado' %}<i class="bi bi-plus-circle-fill text-primary"></i>
+                {% elif entry.action == 'visualizado' %}<i class="bi bi-eye-fill text-info"></i>
+                {% elif entry.action == 'status_alterado' %}<i class="bi bi-arrow-repeat text-warning"></i>
+                {% elif entry.action == 'comentario' %}<i class="bi bi-chat-fill text-success"></i>
+                {% elif entry.action == 'voto_urgencia' %}<i class="bi bi-hand-thumbs-up-fill text-danger"></i>
+                {% else %}<i class="bi bi-dot"></i>{% endif %}
+              </span>
+              <div class="flex-grow-1 min-w-0">
+                <p class="fw-semibold mb-0">
+                  {% if entry.action == 'criado' %}Chamado aberto
+                  {% elif entry.action == 'visualizado' %}Visualizado pelo órgão
+                  {% elif entry.action == 'status_alterado' %}Status alterado
+                  {% elif entry.action == 'comentario' %}Comentário do órgão
+                  {% elif entry.action == 'voto_urgencia' %}Voto de urgência
+                  {% else %}{{ entry.action }}{% endif %}
+                </p>
+                <p class="text-muted small mb-1">
+                  {{ entry.created_at|format_datetime_sp }}{% if entry.user %} · {{ entry.user.name }}{% endif %}
+                </p>
+                {% if entry.action == 'status_alterado' and entry.old_status and entry.new_status %}
+                  <p class="small mb-1">
+                    <span class="badge badge-status {{ entry.old_status }}">{{ entry.old_status|status_label }}</span>
+                    <i class="bi bi-arrow-right" aria-hidden="true"></i><span class="visually-hidden">para</span>
+                    <span class="badge badge-status {{ entry.new_status }}">{{ entry.new_status|status_label }}</span>
+                  </p>
+                {% endif %}
+                {% if entry.comment %}
+                  <p class="bg-light rounded p-2 small mb-0" style="white-space: pre-line;">{{ entry.comment }}</p>
+                {% endif %}
+              </div>
+            </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <p class="text-muted mb-0">Nenhuma movimentação ainda.</p>
+        {% endif %}
       </div>
-    `;
-  }
-});
-
-async function voteUrgencyDetail(reportId) {
-  const button = document.getElementById('detail-vote-btn');
-  if (button) button.disabled = true;
-
-  if (!navigator.geolocation) {
-    alert('Geolocalização não disponível para votar urgência.');
-    if (button) button.disabled = false;
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    try {
-      const response = await fetch(`/api/reports/${reportId}/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-        body: JSON.stringify({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        })
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Não foi possível registrar o voto.');
-      }
-
-      const countEl = document.getElementById('detail-vote-count');
-      if (countEl && typeof result.urgency_votes_count !== 'undefined') {
-        countEl.textContent = result.urgency_votes_count;
-      }
-
-      if (button) {
-        button.innerHTML = '<i class="bi bi-check-circle"></i> Urgência votada';
-        button.classList.remove('btn-outline-danger');
-        button.classList.add('btn-secondary');
-        button.disabled = true;
-      }
-      alert('Voto de urgência registrado com sucesso.');
-    } catch (err) {
-      if (button) button.disabled = false;
-      alert(err.message || 'Erro ao votar urgência.');
-    }
-  }, () => {
-    if (button) button.disabled = false;
-    alert('Ative sua localização para votar urgência.');
-  }, {
-    enableHighAccuracy: true,
-    timeout: 10000
-  });
-}
-</script>
-
+    </div>
+  </aside>
+</div>
 {% endblock %}

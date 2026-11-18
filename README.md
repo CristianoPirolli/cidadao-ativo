@@ -19,6 +19,7 @@ Projeto desenvolvido no PRATIC IV — UNOESC. Os materiais acadêmicos estão em
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [API](#api)
 - [Perfis de usuário](#perfis-de-usuário)
+- [App no celular (PWA)](#app-no-celular-pwa)
 - [Segurança](#segurança)
 
 ---
@@ -49,7 +50,7 @@ Projeto desenvolvido no PRATIC IV — UNOESC. Os materiais acadêmicos estão em
 |---|---|
 | Backend | Python 3.12, Django 5.2 |
 | Banco de dados | PostgreSQL 16 (driver psycopg 3) |
-| Frontend | Templates Django, Bootstrap 5, Leaflet (OpenStreetMap) |
+| Frontend | Templates Django, Bootstrap 5, Leaflet; mobile-first, acessível (WCAG 2.2 AA) e instalável (PWA) |
 | Servidor | Gunicorn + Nginx, WhiteNoise para estáticos |
 | Infra | Docker / Docker Compose |
 | Qualidade | pytest + pytest-django, Ruff, GitHub Actions |
@@ -83,7 +84,7 @@ cidadao-ativo/
 │   └── manage.py
 ├── frontend/
 │   ├── templates/               # Templates organizados por app
-│   └── static/                  # CSS e JavaScript
+│   └── static/                  # CSS, JavaScript, ícones do app e bibliotecas (vendor/)
 ├── docker/
 │   ├── backend/                 # Dockerfile e entrypoint
 │   └── nginx/                   # Configuração do proxy reverso
@@ -224,6 +225,20 @@ Categorias: `iluminacao`, `via_publica`, `agua_esgoto`, `limpeza`, `outros`.
 | Dono da plataforma | Usuário cujo e-mail é `PLATFORM_OWNER_EMAIL` | — |
 
 O Django Admin fica em `/django-admin/`.
+
+## App no celular (PWA)
+
+O frontend é pensado primeiro para o celular: navegação inferior para usuários logados, tabelas que viram cartões em telas pequenas, botões de no mínimo 44px e campos com teclado adequado (numérico para CPF/CNPJ, e-mail etc.).
+
+O Cidadão Ativo também pode ser instalado na tela inicial do celular ("Adicionar à tela inicial"):
+
+- `/manifest.webmanifest`: nome, cores e ícones do app (`frontend/static/icons/`)
+- `/sw.js`: service worker que guarda os arquivos estáticos no aparelho, para abrir rápido e mostrar a página `/offline` sem conexão. Páginas com dados do usuário **nunca** são armazenadas no aparelho.
+- Sem internet, o formulário de novo chamado guarda um rascunho no aparelho e avisa o cidadão; o envio é feito quando a conexão voltar.
+
+Bootstrap, Bootstrap Icons e Leaflet ficam em `frontend/static/vendor/` (sem CDN), para funcionarem com o app instalado e sem depender de terceiros.
+
+> A instalação do app e o GPS do navegador só funcionam em **HTTPS** (ou em `localhost`). Em produção, coloque a aplicação atrás de um certificado TLS e ative `DJANGO_SECURE_SSL_REDIRECT` e `DJANGO_SECURE_COOKIES`.
 
 ## Segurança
 
