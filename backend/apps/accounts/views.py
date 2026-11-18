@@ -4,16 +4,19 @@ import os
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
+from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
+from apps.accounts.forms import PasswordRecoveryForm
 from apps.accounts.models import User
 from apps.accounts.services.auth import (
     AuthenticationError,
@@ -83,6 +86,37 @@ def register_view(request):
         return redirect('login')
 
     return render(request, 'accounts/register.html')
+
+
+@method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=False), name='post')
+class PasswordRecoveryView(auth_views.PasswordResetView):
+    """Pede o link de redefinição de senha (enviado ao e-mail cadastrado)."""
+
+    form_class = PasswordRecoveryForm
+    template_name = 'accounts/password_reset_form.html'
+    subject_template_name = 'accounts/emails/password_reset_subject.txt'
+    email_template_name = 'accounts/emails/password_reset_email.txt'
+    html_email_template_name = 'accounts/emails/password_reset_email.html'
+    success_url = reverse_lazy('password_reset_done')
+
+    def post(self, request, *args, **kwargs):
+        if getattr(request, 'limited', False):
+            messages.error(request, 'Muitas tentativas. Aguarde um minuto e tente novamente.')
+            return self.get(request, *args, **kwargs)
+        return super().post(request, *args, **kwargs)
+
+
+class PasswordRecoveryDoneView(auth_views.PasswordResetDoneView):
+    template_name = 'accounts/password_reset_done.html'
+
+
+class PasswordRecoveryConfirmView(auth_views.PasswordResetConfirmView):
+    template_name = 'accounts/password_reset_confirm.html'
+    success_url = reverse_lazy('password_reset_complete')
+
+
+class PasswordRecoveryCompleteView(auth_views.PasswordResetCompleteView):
+    template_name = 'accounts/password_reset_complete.html'
 
 
 def logout_view(request):

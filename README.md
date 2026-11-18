@@ -32,6 +32,7 @@ Projeto desenvolvido no PRATIC IV — UNOESC. Os materiais acadêmicos estão em
 - Detecção automática do município pela coordenada (geocodificação reversa + IBGE)
 - Voto de urgência em chamados próximos (até 200 m, configurável)
 - Ouvidoria municipal
+- Recuperação de senha por e-mail ("Esqueci minha senha", informando CPF ou e-mail)
 
 **Órgão público (prefeitura)**
 - Painel com mapa, mapa de calor e regiões com mais ocorrências
@@ -187,7 +188,7 @@ Todas estão documentadas em [`.env.example`](.env.example). As principais:
 | `DJANGO_ALLOWED_HOSTS` | Hosts permitidos, separados por vírgula |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | Origens confiáveis para CSRF (com esquema) |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | Conexão com o PostgreSQL (as mesmas variáveis configuram o container do banco) |
-| `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`… | SMTP para e-mails de aprovação |
+| `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`… | SMTP para e-mails de aprovação e recuperação de senha (sem `EMAIL_HOST_USER`, os e-mails só aparecem no log) |
 | `PLATFORM_OWNER_EMAIL` | E-mail do dono da plataforma (acesso ao painel SaaS) |
 | `URGENCY_VOTE_MAX_DISTANCE_METERS` | Distância máxima para votar urgência |
 | `DJANGO_SECURE_SSL_REDIRECT`, `DJANGO_SECURE_COOKIES` | Ative quando estiver atrás de HTTPS |

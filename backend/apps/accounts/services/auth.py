@@ -41,7 +41,8 @@ CPF_PATTERN = re.compile(r'^\D*(\d\D*){11}$')
 EMAIL_PATTERN = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 
 
-def _normalise_identifier(raw_identifier: str) -> tuple[str, str]:
+def parse_login_identifier(raw_identifier: str) -> tuple[str, str]:
+    """Interpreta o identificador de login: retorna ``('cpf' | 'email', valor normalizado)``."""
     identifier = (raw_identifier or '').strip()
     if not identifier:
         raise AuthenticationError('Informe CPF ou email para entrar.')
@@ -61,7 +62,7 @@ def authenticate_user(identifier: str, password: str) -> User:
     if not password:
         raise AuthenticationError('Informe a senha para continuar.')
 
-    field, value = _normalise_identifier(identifier)
+    field, value = parse_login_identifier(identifier)
     user = User.objects.filter(**{field: value}).first()
 
     if not user:
