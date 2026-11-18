@@ -35,7 +35,6 @@ class RegistrationError(Exception):
 class RegistrationResult:
     user: User
     message: str
-    flash_category: str = 'success'
 
 
 CPF_PATTERN = re.compile(r'^\D*(\d\D*){11}$')
