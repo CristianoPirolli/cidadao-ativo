@@ -1,0 +1,11 @@
+{% autoescape off %}Olá, {{ name }}!
+
+{% if status_label %}Seu chamado #{{ report.id }} "{{ report.title }}" mudou para: {{ status_label }}.{% else %}{{ agency_name }} enviou uma mensagem sobre o seu chamado #{{ report.id }} "{{ report.title }}".{% endif %}
+{% if comment %}
+Mensagem de {{ agency_name }}:
+{{ comment }}
+{% endif %}
+Acompanhe o chamado: {{ link }}
+
+Cidadão Ativo
+{% endautoescape %}
