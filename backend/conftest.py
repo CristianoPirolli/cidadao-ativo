@@ -3,6 +3,7 @@ import io
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 from PIL import Image
 
 from apps.accounts.models import User, UserType
@@ -30,6 +31,7 @@ def citizen(db):
         user_type=UserType.CITIZEN,
         cpf='52998224725',
         is_approved=True,
+        privacy_accepted_at=timezone.now(),
         municipio_origem_id=MUNICIPIO['id'],
         municipio_origem_nome=MUNICIPIO['nome'],
         municipio_origem_uf=MUNICIPIO['uf'],
@@ -47,6 +49,7 @@ def other_citizen(db):
         user_type=UserType.CITIZEN,
         cpf='11144477735',
         is_approved=True,
+        privacy_accepted_at=timezone.now(),
         municipio_origem_id=MUNICIPIO['id'],
         municipio_origem_nome=MUNICIPIO['nome'],
         municipio_origem_uf=MUNICIPIO['uf'],
@@ -65,6 +68,7 @@ def agency(db):
         cnpj='11222333000181',
         orgao_nome='Prefeitura de Florianópolis',
         is_approved=True,
+        privacy_accepted_at=timezone.now(),
         municipio_ibge_id=MUNICIPIO['id'],
         municipio_nome=MUNICIPIO['nome'],
         municipio_uf=MUNICIPIO['uf'],
@@ -76,12 +80,14 @@ def agency(db):
 
 @pytest.fixture
 def admin_user(db):
-    return User.objects.create_superuser(email='admin@example.com', name='Admin', password='senha-forte-123')
+    return User.objects.create_superuser(email='admin@example.com', name='Admin', password='senha-forte-123',
+                                         privacy_accepted_at=timezone.now())
 
 
 @pytest.fixture
 def owner(db):
-    return User.objects.create_superuser(email='owner@test.com', name='Dono', password='senha-forte-123')
+    return User.objects.create_superuser(email='owner@test.com', name='Dono', password='senha-forte-123',
+                                         privacy_accepted_at=timezone.now())
 
 
 @pytest.fixture

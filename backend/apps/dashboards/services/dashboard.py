@@ -129,7 +129,9 @@ def get_agency_dashboard_data(
 
     return {
         'reports': reports,
-        'map_reports': reports[:MAP_REPORTS_LIMIT],
+        # Só os campos do marcador, sem a agregação de votos da listagem
+        'map_reports': filtered_qs.only('id', 'title', 'category', 'status', 'lat', 'lng', 'created_at')
+                                  .order_by('-created_at')[:MAP_REPORTS_LIMIT],
         'stats': stats,
         'pending_citizens': pending_citizens,
         'filters': {'status': status_filter, 'category': category_filter},

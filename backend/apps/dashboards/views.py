@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.models import User, UserType
 from apps.core.decorators import admin_required, agency_required, citizen_required, owner_required
@@ -66,7 +67,7 @@ def _build_map_context(reports, padding=0.02):
             'status_raw': report.status,
             'lat': report.lat,
             'lng': report.lng,
-            'created_at': report.created_at.strftime('%d/%m/%Y %H:%M') if report.created_at else '-',
+            'created_at': timezone.localtime(report.created_at).strftime('%d/%m/%Y %H:%M') if report.created_at else '-',
             'detail_url': reverse('report_detail', args=[report.id]),
         }
         for report in reports
@@ -168,8 +169,10 @@ def dashboard_owner(request):
     }
 
     tab = request.GET.get('tab', 'agencies')
-    listed = pending_agencies.order_by('created_at', 'id') if tab == 'agencies' else agencies.order_by('-created_at', '-id')
-    page = paginate(request, listed, ADMIN_PAGE_SIZE)
+    page = None
+    if tab in ('agencies', 'all_agencies'):
+        listed = pending_agencies.order_by('created_at', 'id') if tab == 'agencies' else agencies.order_by('-created_at', '-id')
+        page = paginate(request, listed, ADMIN_PAGE_SIZE)
     return render(request, 'dashboards/owner.html', {
         'tab': tab,
         'agencies': page,
