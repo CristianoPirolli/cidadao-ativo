@@ -130,6 +130,33 @@
     }
   }
 
+  /**
+   * Reduz fotos grandes no próprio aparelho antes do envio (menos dados móveis e
+   * envio mais rápido com sinal fraco). Em caso de falha, devolve o arquivo original.
+   */
+  async function compressImage(file, maxSide = 1600, quality = 0.8) {
+    const COMPRESSIBLE = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    if (!file || !COMPRESSIBLE.includes(file.type) || file.size < 400 * 1024 || !window.createImageBitmap) {
+      return file;
+    }
+    try {
+      // imageOrientation corrige fotos "deitadas" (orientação EXIF do celular)
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+      if (!blob || blob.size >= file.size) return file;
+      const name = (file.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg';
+      return new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() });
+    } catch (e) {
+      return file;
+    }
+  }
+
   // ── Mapas ────────────────────────────────────────────────────────────
 
   function initMap(el, center = DEFAULT_COORDS, zoom = 13) {
@@ -326,6 +353,12 @@
         }
 
         const formData = new FormData(form);
+        const photo = form.elements.image && form.elements.image.files[0];
+        if (photo) {
+          submitBtn.lastChild.textContent = ' Preparando foto...';
+          formData.set('image', await compressImage(photo));
+          submitBtn.lastChild.textContent = ' Enviando...';
+        }
         formData.set('lat', lat);
         formData.set('lng', lng);
         formData.set('municipio_ibge_id', place.municipio_ibge_id);
@@ -480,5 +513,5 @@
   registerServiceWorker();
 
   // Expostos para scripts das páginas
-  window.CidadaoAtivo = { showNotification, postJson, getPosition, setBusy, escapeHtml };
+  window.CidadaoAtivo = { showNotification, postJson, getPosition, setBusy, escapeHtml, compressImage };
 })();

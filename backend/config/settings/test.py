@@ -17,3 +17,4 @@ STORAGES = {
 }
 PLATFORM_OWNER_EMAIL = 'owner@test.com'
 STATIC_ROOT = Path(tempfile.mkdtemp(prefix='cidadao-static-'))
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}

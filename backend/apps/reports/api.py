@@ -30,6 +30,7 @@ from apps.reports.models import (
     ReportUrgencyVote,
 )
 from apps.reports.services.geo import distance_meters
+from apps.reports.services.notifications import notify_report_update
 
 logger = logging.getLogger(__name__)
 
@@ -306,6 +307,8 @@ def update_report_status(request, report_id):
             new_status=canonical_status,
             comment=comment or f'Status alterado de {old_status} para {new_status}',
         )
+        if canonical_status != old_status:
+            notify_report_update(report, request.user, request, new_status=canonical_status, comment=comment)
 
         return JsonResponse({'success': True, 'data': report.to_dict(), 'message': 'Status atualizado com sucesso'})
 
@@ -380,6 +383,7 @@ def add_comment(request, report_id):
             comment=comment,
         )
         report.save(update_fields=['updated_at'])
+        notify_report_update(report, request.user, request, comment=comment)
 
         return JsonResponse({'success': True, 'data': history_entry.to_dict(), 'message': 'Comentário adicionado com sucesso'}, status=201)
 

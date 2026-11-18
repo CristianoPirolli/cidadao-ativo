@@ -4,6 +4,7 @@ from threading import Thread
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,13 @@ def send_email(subject: str, recipients: list, html_body: str, text_body: str = 
     )
     msg.attach_alternative(html_body, 'text/html')
     Thread(target=_send_async, args=(msg,), daemon=True).start()
+
+
+def send_templated_email(subject: str, recipients: list, template: str, context: dict) -> None:
+    """Envia ``<template>.txt`` e ``<template>.html`` (com escape automático dos dados do usuário)."""
+    text_body = render_to_string(f'{template}.txt', context)
+    html_body = render_to_string(f'{template}.html', context)
+    send_email(subject, recipients, html_body, text_body)
 
 
 def send_approval_email(user) -> None:
