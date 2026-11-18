@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Política de privacidade · Cidadão Ativo{% endblock %}
+{% block content %}
+<article class="card" style="max-width: 52rem; margin-inline: auto;">
+  <div class="card-body">
+    <h1 class="h3 fw-bold">Política de privacidade</h1>
+    <p class="text-muted">Como o Cidadão Ativo trata os seus dados pessoais, de acordo com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).</p>
+
+    <h2 class="h5 fw-bold mt-4">Quem é responsável pelos dados</h2>
+    <p>O controlador dos dados é <strong>{{ controller_name }}</strong>. Os órgãos públicos (prefeituras e secretarias) cadastrados acessam os dados dos moradores do seu município para analisar cadastros e atender chamados.</p>
+    <p>Para dúvidas ou pedidos sobre seus dados, escreva para <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+
+    <h2 class="h5 fw-bold mt-4">Quais dados coletamos e para quê</h2>
+    <ul>
+      <li><strong>Cadastro</strong> (nome, CPF ou CNPJ, e-mail, telefone e município): identificar você, confirmar que mora no município e permitir o acesso à plataforma.</li>
+      <li><strong>Comprovante de residência</strong>: usado apenas pelo órgão do seu município para aprovar o cadastro.</li>
+      <li><strong>Chamados</strong> (título, descrição, categoria, foto e localização): encaminhar o problema ao órgão responsável e acompanhar o atendimento.</li>
+      <li><strong>Localização no voto de urgência</strong>: conferir que você está perto do local. Ela não é guardada, só usada na hora do voto.</li>
+      <li><strong>Mensagens da ouvidoria</strong>: registrar sugestões, reclamações e elogios sobre o município.</li>
+      <li><strong>Registros de acesso</strong> (data, hora e endereço IP): segurança da conta e prevenção de abusos.</li>
+    </ul>
+
+    <h2 class="h5 fw-bold mt-4">O que fica visível para outras pessoas</h2>
+    <ul>
+      <li>Os chamados (com foto, local e o nome de quem abriu) ficam visíveis para os moradores cadastrados do mesmo município e para o órgão responsável.</li>
+      <li>Mensagens da ouvidoria aparecem com o seu nome para os moradores do mesmo município.</li>
+      <li>CPF, telefone, e-mail e comprovante de residência <strong>não</strong> são mostrados a outros moradores. O órgão do município vê esses dados para analisar o cadastro e entrar em contato sobre os chamados.</li>
+    </ul>
+
+    <h2 class="h5 fw-bold mt-4">Com quem compartilhamos</h2>
+    <ul>
+      <li>Com o órgão público do seu município, para análise do cadastro e atendimento dos chamados.</li>
+      <li>Com o serviço de mapas OpenStreetMap (Nominatim), que recebe apenas as coordenadas do chamado para identificar o município.</li>
+      <li>Com o provedor de e-mail, para enviar avisos sobre o seu cadastro e os seus chamados.</li>
+    </ul>
+    <p>Não vendemos nem usamos seus dados para publicidade.</p>
+
+    <h2 class="h5 fw-bold mt-4">Por quanto tempo guardamos</h2>
+    <ul>
+      <li>O comprovante de residência é apagado <strong>{{ retention_days }} dias</strong> depois que o cadastro é aprovado ou recusado.</li>
+      <li>Os demais dados ficam guardados enquanto a conta existir e pelo tempo exigido por lei para registros de serviços públicos.</li>
+    </ul>
+
+    <h2 class="h5 fw-bold mt-4">Seus direitos</h2>
+    <p>Você pode pedir a qualquer momento: confirmação de que tratamos seus dados, acesso a eles, correção de dados incompletos ou errados, anonimização ou eliminação de dados desnecessários, informação sobre com quem compartilhamos e revisão de decisões. Envie o pedido para <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.</p>
+
+    <h2 class="h5 fw-bold mt-4">Segurança</h2>
+    <p>As senhas são guardadas de forma criptografada, os comprovantes de residência não ficam acessíveis publicamente e o acesso aos dados é restrito por perfil. No celular, o app guarda apenas os arquivos do próprio app e o rascunho de chamado que você ainda não enviou.</p>
+  </div>
+</article>
+{% endblock %}

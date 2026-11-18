@@ -941,6 +941,11 @@ body.has-bottom-nav {
   font-size: 0.875rem;
 }
 
+.site-footer a {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
 /* ── Acessibilidade: movimento reduzido ───────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

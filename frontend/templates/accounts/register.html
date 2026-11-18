@@ -123,6 +123,13 @@
           </div>
         </div>
 
+        <div class="form-check mb-3 align-items-start">
+          <input class="form-check-input mt-1" type="checkbox" value="1" id="accept_privacy" name="accept_privacy" required>
+          <label class="form-check-label" for="accept_privacy">
+            Li e aceito a <a href="{% url 'privacy_policy' %}" target="_blank" rel="noopener">política de privacidade</a> *
+          </label>
+        </div>
+
         <div id="register-error" class="alert alert-danger" role="alert" hidden></div>
         <button type="submit" class="btn btn-primary btn-lg w-100 mt-2">Criar conta</button>
         <p class="text-center mt-3 mb-0">Já tem conta? <a href="{% url 'login' %}" class="fw-semibold">Entrar</a></p>
