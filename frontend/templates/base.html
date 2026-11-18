@@ -106,7 +106,7 @@
 
   <footer class="site-footer text-center py-3 mt-4 {% if user.is_authenticated %}d-none d-lg-block{% endif %}">
     <div class="container-xl">
-      <p class="mb-0">Cidadão Ativo · Participação cidadã digital</p>
+      <p class="mb-0">Cidadão Ativo · Participação cidadã digital · <a href="{% url 'privacy_policy' %}">Política de privacidade</a></p>
     </div>
   </footer>
 
@@ -132,6 +132,19 @@
       <i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Sair</span>
     </a>
   </nav>
+  {% endif %}
+
+  {% if vlibras_enabled %}
+  <div vw class="enabled">
+    <div vw-access-button class="active"></div>
+    <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+  </div>
+  <script src="https://vlibras.gov.br/app/vlibras-plugin.js" defer></script>
+  <script>
+    window.addEventListener('load', () => {
+      if (window.VLibras) new window.VLibras.Widget('https://vlibras.gov.br/app');
+    });
+  </script>
   {% endif %}
 
   {{ map_config|json_script:"map-config" }}

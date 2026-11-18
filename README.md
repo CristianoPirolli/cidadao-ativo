@@ -243,6 +243,18 @@ Bootstrap, Bootstrap Icons e Leaflet ficam em `frontend/static/vendor/` (sem CDN
 
 > A instalação do app e o GPS do navegador só funcionam em **HTTPS** (ou em `localhost`). Em produção, coloque a aplicação atrás de um certificado TLS e ative `DJANGO_SECURE_SSL_REDIRECT` e `DJANGO_SECURE_COOKIES`.
 
+## Privacidade (LGPD) e acessibilidade
+
+- Política de privacidade em `/privacidade`, com controlador, contato e prazo de guarda vindos de `PRIVACY_CONTROLLER_NAME`, `PRIVACY_CONTACT_EMAIL` e `RESIDENCE_PROOF_RETENTION_DAYS`. **O texto é um modelo: revise com o jurídico antes de publicar.**
+- O cadastro exige o aceite da política, e a data do aceite fica registrada (`User.privacy_accepted_at`).
+- Comprovantes de residência são apagados depois do prazo de guarda pelo comando abaixo. Agende a execução diária (cron do servidor, por exemplo):
+
+```bash
+docker compose exec backend python manage.py purge_residence_proofs           # use --dry-run para só listar
+```
+
+- Tradutor de Libras [VLibras](https://www.gov.br/governodigital/pt-br/vlibras), do governo federal, em todas as páginas. Desligue com `VLIBRAS_ENABLED=false`.
+
 ## Segurança
 
 - Senhas com hash do Django (PBKDF2) e validadores de senha
