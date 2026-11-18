@@ -1,0 +1,10 @@
+{% autoescape off %}Olá, {{ name }}.
+
+Seu cadastro no Cidadão Ativo não foi aprovado por {{ agency_name }} ({{ municipio }}).
+
+Motivo: {{ reason }}
+
+Para corrigir o cadastro (por exemplo, enviar outro comprovante), procure a prefeitura do seu município.
+
+Cidadão Ativo
+{% endautoescape %}

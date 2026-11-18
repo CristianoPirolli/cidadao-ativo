@@ -6,9 +6,12 @@ cidade com a base de municípios do IBGE (correspondência exata e aproximada).
 """
 import logging
 import re
+import threading
+import time
 import unicodedata
 
 import requests
+from django.core.cache import cache
 
 from apps.locations.services.ibge import find_municipio, get_municipios_by_uf
 
@@ -21,6 +24,14 @@ USER_AGENT = 'CidadaoAtivo/1.0 (contato@cidadaoativo.com)'
 # Campos do endereço onde o Nominatim pode devolver o nome da cidade, por prioridade
 CITY_FIELDS = ('city', 'town', 'village', 'municipality', 'county')
 STOPWORDS = {'de', 'do', 'da', 'dos', 'das'}
+
+# Resultados encontrados ficam em cache: 4 casas decimais ≈ 11 m
+CACHE_TIMEOUT = 30 * 24 * 60 * 60
+CACHE_PRECISION = 4
+# Política de uso do Nominatim: no máximo 1 requisição por segundo
+MIN_INTERVAL_SECONDS = 1.0
+_rate_lock = threading.Lock()
+_last_request_at = 0.0
 
 STATE_TO_UF = {
     'acre': 'AC', 'alagoas': 'AL', 'amapá': 'AP', 'amazonas': 'AM', 'bahia': 'BA',
@@ -44,8 +55,18 @@ def normalize_text(text: str) -> str:
     return re.sub(r'\s+', ' ', re.sub(r'[^a-z0-9\s]', '', text)).strip()
 
 
+def _wait_for_rate_limit():
+    global _last_request_at
+    with _rate_lock:
+        wait = MIN_INTERVAL_SECONDS - (time.monotonic() - _last_request_at)
+        if wait > 0:
+            time.sleep(wait)
+        _last_request_at = time.monotonic()
+
+
 def reverse_geocode(lat: float, lng: float) -> dict | None:
     """Endereço do Nominatim para as coordenadas, ou ``None`` em caso de falha."""
+    _wait_for_rate_limit()
     try:
         response = requests.get(
             NOMINATIM_URL,
@@ -98,6 +119,18 @@ def fuzzy_search_municipio(name: str, uf: str) -> dict | None:
 
 
 def get_city_from_location(lat: float, lng: float) -> dict:
+    """Município do IBGE para as coordenadas, usando o cache quando possível."""
+    key = f'geocode:{round(lat, CACHE_PRECISION)}:{round(lng, CACHE_PRECISION)}'
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    result = _lookup_city(lat, lng)
+    if result.get('valid'):
+        cache.set(key, result, CACHE_TIMEOUT)
+    return result
+
+
+def _lookup_city(lat: float, lng: float) -> dict:
     """
     Município do IBGE para as coordenadas.
 

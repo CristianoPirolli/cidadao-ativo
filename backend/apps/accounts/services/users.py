@@ -6,7 +6,7 @@ from __future__ import annotations
 from django.utils import timezone
 
 from apps.accounts.models import ApprovalRequest, User
-from apps.core.services.email import send_approval_email
+from apps.core.services.email import send_approval_email, send_templated_email
 
 
 class UserActionError(Exception):
@@ -151,3 +151,11 @@ def reject_citizen_by_agency(citizen: User, agency: User, reason: str | None = N
         pending_request.rejection_reason = reason or 'Não informado'
         pending_request.resolved_at = timezone.now()
         pending_request.save()
+
+    if citizen.email:
+        send_templated_email('Seu cadastro no Cidadão Ativo não foi aprovado', [citizen.email], 'emails/registration_rejected', {
+            'name': citizen.name,
+            'reason': reason or 'Não informado',
+            'agency_name': agency.orgao_nome or agency.name,
+            'municipio': f'{agency.municipio_nome}/{agency.municipio_uf}',
+        })
