@@ -160,3 +160,11 @@ def test_report_list_hides_author_email(client, agency, report):
     data = client.get(reverse('api_get_reports')).json()['data']
     assert data[0]['id'] == report.id
     assert 'user_email' not in data[0]
+
+
+@pytest.mark.django_db
+def test_update_status_with_non_string_returns_400(client, agency, report):
+    client.force_login(agency)
+    response = client.post(reverse('api_update_report', args=[report.id]),
+                           data=json.dumps({'status': ['resolvido']}), content_type='application/json')
+    assert response.status_code == 400

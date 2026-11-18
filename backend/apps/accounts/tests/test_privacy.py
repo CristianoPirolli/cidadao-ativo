@@ -82,3 +82,49 @@ def test_vlibras_widget_follows_setting(client, settings):
     assert 'vlibras.gov.br' in client.get('/login').content.decode()
     settings.VLIBRAS_ENABLED = False
     assert 'vlibras.gov.br' not in client.get('/login').content.decode()
+
+
+@pytest.mark.django_db
+def test_existing_user_must_accept_policy(client, citizen):
+    citizen.privacy_accepted_at = None
+    citizen.save()
+    client.force_login(citizen)
+    response = client.get(reverse('dashboard_citizen'))
+    assert response.status_code == 302
+    assert response.url.startswith(reverse('privacy_consent'))
+    # API e logout continuam liberados
+    assert client.get(reverse('api_stats')).status_code == 200
+    response = client.post(reverse('privacy_consent'), {'next': reverse('dashboard_citizen')})
+    assert response.url == reverse('dashboard_citizen')
+    citizen.refresh_from_db()
+    assert citizen.privacy_accepted_at is not None
+    assert client.get(reverse('dashboard_citizen')).status_code == 200
+
+
+@pytest.mark.django_db
+def test_consent_rejects_external_next(client, citizen):
+    citizen.privacy_accepted_at = None
+    citizen.save()
+    client.force_login(citizen)
+    response = client.post(reverse('privacy_consent'), {'next': 'https://evil.example/'})
+    assert response.url == reverse('dashboard')
+
+
+@pytest.mark.django_db
+def test_purge_covers_old_approvals_without_date(citizen):
+    path = make_proof(citizen)
+    citizen.approved_at = None
+    citizen.created_at = timezone.now() - timedelta(days=settings.RESIDENCE_PROOF_RETENTION_DAYS + 5)
+    citizen.save()
+    call_command('purge_residence_proofs')
+    assert not os.path.exists(path)
+
+
+@pytest.mark.django_db
+def test_promoting_to_admin_records_approval(client, owner, citizen):
+    citizen.is_approved = False
+    citizen.save()
+    client.force_login(owner)
+    client.post(reverse('toggle_admin', args=[citizen.id]))
+    citizen.refresh_from_db()
+    assert citizen.is_admin and citizen.approved_at is not None and citizen.approved_by == owner

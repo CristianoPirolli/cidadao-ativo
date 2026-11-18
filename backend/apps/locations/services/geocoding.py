@@ -6,7 +6,6 @@ cidade com a base de municípios do IBGE (correspondência exata e aproximada).
 """
 import logging
 import re
-import threading
 import time
 import unicodedata
 
@@ -28,10 +27,12 @@ STOPWORDS = {'de', 'do', 'da', 'dos', 'das'}
 # Resultados encontrados ficam em cache: 4 casas decimais ≈ 11 m
 CACHE_TIMEOUT = 30 * 24 * 60 * 60
 CACHE_PRECISION = 4
-# Política de uso do Nominatim: no máximo 1 requisição por segundo
-MIN_INTERVAL_SECONDS = 1.0
-_rate_lock = threading.Lock()
-_last_request_at = 0.0
+# Política de uso do Nominatim: no máximo 1 requisição por segundo. A "vaga" é
+# reservada no cache compartilhado (atômico no Redis), valendo para todos os
+# processos do servidor.
+MIN_INTERVAL_SECONDS = 1
+RATE_LIMIT_KEY = 'geocode:nominatim-slot'
+MAX_WAIT_SECONDS = 10
 
 STATE_TO_UF = {
     'acre': 'AC', 'alagoas': 'AL', 'amapá': 'AP', 'amazonas': 'AM', 'bahia': 'BA',
@@ -56,12 +57,13 @@ def normalize_text(text: str) -> str:
 
 
 def _wait_for_rate_limit():
-    global _last_request_at
-    with _rate_lock:
-        wait = MIN_INTERVAL_SECONDS - (time.monotonic() - _last_request_at)
-        if wait > 0:
-            time.sleep(wait)
-        _last_request_at = time.monotonic()
+    """Espera até conseguir a vaga de 1 segundo para consultar o Nominatim."""
+    deadline = time.monotonic() + MAX_WAIT_SECONDS
+    while not cache.add(RATE_LIMIT_KEY, 1, timeout=MIN_INTERVAL_SECONDS):
+        if time.monotonic() > deadline:
+            logger.warning('Fila do Nominatim cheia; consultando mesmo assim')
+            return
+        time.sleep(0.1)
 
 
 def reverse_geocode(lat: float, lng: float) -> dict | None:
