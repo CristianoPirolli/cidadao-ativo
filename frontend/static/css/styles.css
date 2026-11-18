@@ -60,14 +60,6 @@ a:hover {
   opacity: 0.7;
 }
 
-.hero-card {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  border: 1px solid rgba(99, 102, 241, 0.08);
-  overflow: hidden;
-}
-
 .metric-grid {
   display: grid;
   gap: 1.5rem;
@@ -439,7 +431,6 @@ footer small {
   body {
     font-size: 0.95rem;
   }
-  .hero-card,
   .glass-card,
   .card {
     border-radius: 1rem;

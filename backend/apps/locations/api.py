@@ -7,7 +7,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.accounts.models import User, UserType
 from apps.locations.services.geocoding import get_city_from_location
-from apps.locations.services.ibge import IBGEService, get_all_municipios, get_municipio, search_municipios
+from apps.locations.services.ibge import get_all_municipios, get_municipio, get_municipios_by_uf, search_municipios
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def get_municipios(request):
         if query:
             municipios = search_municipios(query, uf)
         elif uf:
-            municipios = IBGEService.get_municipios_by_uf(uf)[:50]
+            municipios = get_municipios_by_uf(uf)[:50]
         else:
             municipios = get_all_municipios()[:50]
         return JsonResponse({'success': True, 'data': municipios, 'count': len(municipios)})
@@ -69,9 +69,9 @@ def geocode(request):
 
         result = get_city_from_location(lat, lng)
 
-        if result and result.get('valid'):
+        if result.get('valid'):
             return JsonResponse({'success': True, 'data': result})
-        return JsonResponse({'success': False, 'error': result.get('error', 'Não foi possível determinar o município'), 'data': result}, status=400)
+        return JsonResponse({'success': False, 'error': result['error'], 'data': result}, status=400)
 
     except Exception as e:
         logger.exception(f'Erro ao fazer geocoding: {e}')

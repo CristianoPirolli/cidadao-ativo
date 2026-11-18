@@ -48,10 +48,8 @@ def normalize_text(value: str) -> str:
     return ascii_text.lower()
 
 
-def validate_ouvidoria_message(content: str) -> tuple[str, str]:
-    """
-    Valida conteúdo da mensagem e retorna (conteudo_original_limpo, conteudo_normalizado).
-    """
+def validate_ouvidoria_message(content: str) -> str:
+    """Valida o conteúdo da mensagem e o retorna sem espaços nas pontas."""
     clean_content = (content or "").strip()
     if len(clean_content) < 10:
         raise OuvidoriaValidationError("Mensagem muito curta. Descreva melhor sua manifestação.")
@@ -69,4 +67,4 @@ def validate_ouvidoria_message(content: str) -> tuple[str, str]:
                 "Reescreva de forma respeitosa para publicar."
             )
 
-    return clean_content, normalized
+    return clean_content
