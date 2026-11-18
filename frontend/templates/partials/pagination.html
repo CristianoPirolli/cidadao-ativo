@@ -1,0 +1,19 @@
+{% if page_obj.has_other_pages %}
+<nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3" aria-label="{{ label|default:'Paginação' }}">
+  {% if page_obj.has_previous %}
+    <a class="btn btn-outline-primary btn-sm" href="{% querystring page=page_obj.previous_page_number %}" rel="prev">
+      <i class="bi bi-chevron-left" aria-hidden="true"></i> Anteriores
+    </a>
+  {% else %}
+    <span></span>
+  {% endif %}
+  <span class="small text-muted" aria-current="page">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a class="btn btn-outline-primary btn-sm" href="{% querystring page=page_obj.next_page_number %}" rel="next">
+      Próximos <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </a>
+  {% else %}
+    <span></span>
+  {% endif %}
+</nav>
+{% endif %}
