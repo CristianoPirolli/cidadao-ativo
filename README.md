@@ -14,12 +14,15 @@ Projeto desenvolvido no PRATIC IV — UNOESC. Os materiais acadêmicos estão em
 - [Stack](#stack)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Executando com Docker](#executando-com-docker)
+- [Primeiros passos](#primeiros-passos)
 - [Desenvolvimento local](#desenvolvimento-local)
 - [Testes e qualidade](#testes-e-qualidade)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [API](#api)
 - [Perfis de usuário](#perfis-de-usuário)
 - [App no celular (PWA)](#app-no-celular-pwa)
+- [Privacidade (LGPD) e acessibilidade](#privacidade-lgpd-e-acessibilidade)
+- [Colocando em produção](#colocando-em-produção)
 - [Segurança](#segurança)
 
 ---
@@ -110,7 +113,7 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Acesse **http://localhost:8000**. As migrações e o `collectstatic` rodam automaticamente na subida do container.
+Acesse **http://localhost:8000**. O Compose sobe quatro containers (PostgreSQL, Redis, Django/Gunicorn e Nginx); as migrações e o `collectstatic` rodam automaticamente na subida do backend.
 
 Criar o primeiro administrador:
 
@@ -140,6 +143,23 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 # runserver em http://localhost:8001
 ```
 
+## Primeiros passos
+
+Depois de subir a aplicação, siga esta ordem. O cidadão só consegue se cadastrar em municípios que já têm um órgão aprovado.
+
+1. **Defina o dono da plataforma** no `.env` (`PLATFORM_OWNER_EMAIL`) e crie o primeiro administrador com esse mesmo e-mail:
+
+   ```bash
+   docker compose exec backend python manage.py createsuperuser
+   ```
+
+   Ao entrar, ele vê o painel administrativo e o painel do dono (gestão de órgãos e de outros administradores).
+2. **Cadastre o órgão público** do município em `/register` (opção "Órgão público", com CNPJ e e-mail institucional).
+3. **Aprove o órgão** pelo painel do dono (aba "Órgãos pendentes") ou pelo painel administrativo.
+4. **Cidadãos se cadastram** em `/register` com CPF e comprovante de residência; o órgão do município aprova cada cadastro no painel dele.
+
+Na primeira busca de municípios, a aplicação baixa a lista do IBGE (é preciso acesso à internet) e a guarda em cache em `/vol/data` (ou `backend/var/` fora do Docker).
+
 ## Desenvolvimento local
 
 Pré-requisitos: Python 3.12+ e PostgreSQL 16 (local ou via Docker).
@@ -165,9 +185,13 @@ python manage.py runserver
 
 Por padrão o `manage.py` usa `config.settings.development` (DEBUG ligado, e-mails no console, uploads servidos pelo Django).
 
+O Redis é opcional em desenvolvimento: sem `REDIS_URL`, o cache fica em arquivos em `backend/var/cache`. Para usar o Redis local, rode `redis-server` e defina `REDIS_URL=redis://localhost:6379/0` no `.env`.
+
+Para testar o app instalável e o GPS no celular durante o desenvolvimento, é preciso HTTPS (exceto em `localhost`); uma opção é expor o servidor local com um túnel HTTPS.
+
 ## Testes e qualidade
 
-Os testes rodam contra PostgreSQL (o pytest-django cria o banco `test_cidadao_ativo` automaticamente).
+Os testes rodam contra PostgreSQL, que precisa estar rodando com as credenciais do `.env` (o pytest-django cria o banco `test_cidadao_ativo` automaticamente). Os testes usam cache em memória e não precisam de Redis nem de acesso à internet.
 
 ```bash
 cd backend
@@ -181,20 +205,55 @@ O workflow em `.github/workflows/ci.yml` executa lint, verificação de migraç�
 
 ## Variáveis de ambiente
 
-Todas estão documentadas em [`.env.example`](.env.example). As principais:
+Todas ficam no arquivo `.env` na raiz do projeto (modelo em [`.env.example`](.env.example)).
 
-| Variável | Descrição |
-|---|---|
-| `DJANGO_SECRET_KEY` | Chave secreta (obrigatória em produção) |
-| `DJANGO_DEBUG` | `true` apenas em desenvolvimento |
-| `DJANGO_ALLOWED_HOSTS` | Hosts permitidos, separados por vírgula |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | Origens confiáveis para CSRF (com esquema) |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | Conexão com o PostgreSQL (as mesmas variáveis configuram o container do banco) |
-| `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`… | SMTP para e-mails de aprovação, avisos de chamado e recuperação de senha (sem `EMAIL_HOST_USER`, os e-mails só aparecem no log) |
-| `PLATFORM_OWNER_EMAIL` | E-mail do dono da plataforma (acesso ao painel SaaS) |
-| `URGENCY_VOTE_MAX_DISTANCE_METERS` | Distância máxima para votar urgência |
-| `REDIS_URL` | Cache compartilhado (limite de tentativas, geocodificação). Já configurado no Docker Compose; sem ele, usa cache em arquivo |
-| `DJANGO_SECURE_SSL_REDIRECT`, `DJANGO_SECURE_COOKIES` | Ative quando estiver atrás de HTTPS |
+**Django e segurança**
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | — | Chave secreta. **Obrigatória em produção** |
+| `DJANGO_DEBUG` | `false` | `true` apenas em desenvolvimento |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Domínios aceitos, separados por vírgula (ex.: `cidadaoativo.com.br`) |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | `http://localhost:8000,…` | Origens com esquema (ex.: `https://cidadaoativo.com.br`) |
+| `DJANGO_SECURE_SSL_REDIRECT` | `false` | Redireciona HTTP para HTTPS (ative atrás de HTTPS) |
+| `DJANGO_SECURE_COOKIES` | `false` | Cookies de sessão e CSRF só por HTTPS |
+| `DJANGO_SECURE_HSTS_SECONDS` | `0` | Ativa HSTS (ex.: `31536000`) quando o HTTPS estiver estável |
+| `DJANGO_LOG_LEVEL` | `INFO` | Nível dos logs |
+
+**Banco de dados e cache**
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | `cidadao_ativo` | Banco e credenciais (as mesmas variáveis criam o container do banco). **Troque a senha** |
+| `POSTGRES_HOST`, `POSTGRES_PORT` | `localhost`, `5432` | Endereço do banco (no Docker já é `db`) |
+| `POSTGRES_CONN_MAX_AGE` | `60` | Segundos que uma conexão com o banco é reaproveitada |
+| `REDIS_URL` | — | Cache compartilhado (limite de tentativas, geocodificação). Já definido no Docker Compose; sem ele, usa cache em arquivo |
+
+**E-mail**
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `EMAIL_HOST`, `EMAIL_PORT` | `smtp.gmail.com`, `587` | Servidor SMTP |
+| `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | — | Credenciais SMTP. **Sem `EMAIL_HOST_USER`, nenhum e-mail é enviado** (aparecem só no log) |
+| `EMAIL_USE_TLS`, `EMAIL_USE_SSL` | `true`, `false` | Criptografia da conexão SMTP |
+| `DEFAULT_FROM_EMAIL` | `noreply@cidadaoativo.com` | Remetente dos e-mails |
+
+Os e-mails enviados são: cadastro aprovado, cadastro recusado (com o motivo), atualização de chamado e recuperação de senha.
+
+**Regras de negócio, privacidade e interface**
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `PLATFORM_OWNER_EMAIL` | — | E-mail do dono da plataforma (acesso ao painel do dono) |
+| `URGENCY_VOTE_MAX_DISTANCE_METERS` | `200` | Distância máxima do local para votar urgência |
+| `PRIVACY_CONTROLLER_NAME` | `Cidadão Ativo` | Controlador dos dados, exibido em `/privacidade` |
+| `PRIVACY_CONTACT_EMAIL` | `DEFAULT_FROM_EMAIL` | Contato para pedidos dos titulares (LGPD) |
+| `RESIDENCE_PROOF_RETENTION_DAYS` | `90` | Dias que o comprovante é guardado após a decisão do cadastro |
+| `VLIBRAS_ENABLED` | `true` | Exibe o tradutor de Libras (VLibras) |
+| `MAP_TILE_URL`, `MAP_TILE_ATTRIBUTION`, `MAP_TILE_MAX_ZOOM` | Esri World Street Map | Provedor do mapa base (ex.: MapTiler, com chave) |
+| `APP_PORT` | `8000` | Porta pública do Nginx no Docker |
+
+**Avançadas** (já definidas pelo Dockerfile; normalmente não precisam ser alteradas): `DJANGO_STATIC_ROOT`, `DJANGO_MEDIA_ROOT`, `DJANGO_DATA_DIR` (pastas de estáticos, uploads e dados), `DJANGO_SERVE_MEDIA` (o Django serve `/uploads/`, útil sem Nginx), `EMAIL_BACKEND`, `DJANGO_MIGRATE` e `DJANGO_COLLECTSTATIC` (rodar migrações e `collectstatic` na subida do container).
 
 ## API
 
@@ -255,6 +314,25 @@ docker compose exec backend python manage.py purge_residence_proofs           # 
 ```
 
 - Tradutor de Libras [VLibras](https://www.gov.br/governodigital/pt-br/vlibras), do governo federal, em todas as páginas. Desligue com `VLIBRAS_ENABLED=false`.
+
+## Colocando em produção
+
+1. **Servidor com Docker** e um domínio apontando para ele.
+2. **`.env` de produção**: `DJANGO_SECRET_KEY` nova, `POSTGRES_PASSWORD` forte, `DJANGO_ALLOWED_HOSTS` e `DJANGO_CSRF_TRUSTED_ORIGINS` com o domínio (`https://…`), `PLATFORM_OWNER_EMAIL`, SMTP e os dados de privacidade.
+3. **HTTPS** (obrigatório para instalar o app e usar o GPS): o Nginx do Compose atende na porta 80; coloque na frente um proxy com certificado (Caddy, Traefik, Nginx com Certbot ou o balanceador do provedor) repassando o cabeçalho `X-Forwarded-Proto`. Depois ative `DJANGO_SECURE_SSL_REDIRECT=true` e `DJANGO_SECURE_COOKIES=true`.
+4. **Subir**: `docker compose up -d --build` (aplica migrações automaticamente) e criar o administrador (veja [Primeiros passos](#primeiros-passos)).
+5. **Agendar tarefas** no cron do servidor:
+
+   ```cron
+   # Apaga comprovantes de residência vencidos (LGPD), todo dia às 3h
+   0 3 * * * cd /caminho/cidadao-ativo && docker compose exec -T backend python manage.py purge_residence_proofs
+   # Backup diário do banco
+   30 3 * * * cd /caminho/cidadao-ativo && docker compose exec -T db pg_dump -U cidadao_ativo cidadao_ativo | gzip > /backups/cidadao-$(date +\%F).sql.gz
+   ```
+
+6. **Conferir**: `curl https://seu-dominio/health` deve responder `{"status": "ok", "database": "ok"}`. Teste num celular o cadastro, um chamado com foto e a instalação do app.
+
+Para atualizar a versão: `git pull && docker compose up -d --build`.
 
 ## Segurança
 
