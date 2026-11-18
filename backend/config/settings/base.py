@@ -69,6 +69,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'apps.core.middleware.PrivacyConsentMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -142,16 +143,27 @@ MEDIA_ROOT = Path(env('DJANGO_MEDIA_ROOT', BASE_DIR / 'media'))
 # Diretório para dados gerados em runtime (ex.: cache de municípios do IBGE)
 DATA_DIR = Path(env('DJANGO_DATA_DIR', BASE_DIR / 'var'))
 
-# Cache compartilhado entre os processos do Gunicorn e mantido entre reinícios
-# (geocodificação e limite de tentativas de login/cadastro)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        'LOCATION': DATA_DIR / 'cache',
-        'TIMEOUT': 300,
-        'OPTIONS': {'MAX_ENTRIES': 20000},
+# Cache compartilhado entre os processos do Gunicorn: geocodificação, limite de
+# tentativas de login/cadastro e intervalo entre consultas ao Nominatim.
+# Em produção use Redis (operações atômicas); sem REDIS_URL, cai para um cache
+# em arquivo, suficiente para desenvolvimento.
+REDIS_URL = env('REDIS_URL')
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'TIMEOUT': 300,
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+            'LOCATION': DATA_DIR / 'cache',
+            'TIMEOUT': 300,
+        }
+    }
 
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},

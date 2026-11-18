@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -209,8 +210,13 @@ def toggle_admin(request, user_id):
         messages.success(request, f'{target.name} removido do nível de admin.')
     else:
         target.is_admin = True
-        target.is_approved = True
-        target.save(update_fields=['is_admin', 'is_approved'])
+        update_fields = ['is_admin']
+        if not target.is_approved:
+            target.is_approved = True
+            target.approved_by = request.user
+            target.approved_at = timezone.now()
+            update_fields += ['is_approved', 'approved_by', 'approved_at']
+        target.save(update_fields=update_fields)
         messages.success(request, f'{target.name} promovido a admin com sucesso.')
 
     return redirect(f"{reverse('dashboard_owner')}?tab=admins")

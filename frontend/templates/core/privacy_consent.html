@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Política de privacidade · Cidadão Ativo{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="glass-card">
+    <i class="bi bi-shield-check display-6 text-primary" aria-hidden="true"></i>
+    <h1 class="h4 fw-bold mt-2">Atualizamos nossa política de privacidade</h1>
+    <p>Para continuar usando o Cidadão Ativo, leia como tratamos seus dados pessoais e confirme que está de acordo.</p>
+    <ul class="small">
+      <li>Seus chamados (com foto, local e seu nome) ficam visíveis para moradores do seu município e para a prefeitura.</li>
+      <li>CPF, telefone, e-mail e comprovante não aparecem para outros moradores.</li>
+      <li>O comprovante de residência é apagado depois que o cadastro é analisado.</li>
+    </ul>
+    <p><a href="{% url 'privacy_policy' %}" target="_blank" rel="noopener" class="fw-semibold">Ler a política de privacidade completa</a></p>
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn btn-primary btn-lg w-100">Li e aceito</button>
+    </form>
+    <a href="{% url 'logout' %}" class="btn btn-link w-100 mt-2">Sair sem aceitar</a>
+  </div>
+</div>
+{% endblock %}

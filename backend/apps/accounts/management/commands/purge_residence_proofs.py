@@ -27,6 +27,8 @@ class Command(BaseCommand):
         cutoff = timezone.now() - timedelta(days=settings.RESIDENCE_PROOF_RETENTION_DAYS)
         users = User.objects.exclude(residence_proof_path__isnull=True).exclude(residence_proof_path='').filter(
             Q(is_approved=True, approved_at__lt=cutoff)
+            # Cadastros antigos aprovados sem data registrada: usa a data de criação
+            | Q(is_approved=True, approved_at__isnull=True, created_at__lt=cutoff)
             | Q(approval_requests__status='rejected', approval_requests__resolved_at__lt=cutoff)
         ).distinct()
 
