@@ -1,62 +1,79 @@
 {% extends 'base.html' %}
+{% load static %}
+{% block title %}Novo chamado · Cidadão Ativo{% endblock %}
+{% block map_css %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
+{% block map_js %}<script src="{% static 'vendor/leaflet/leaflet.js' %}" defer></script>{% endblock %}
+
 {% block content %}
-<div class="row g-4">
-  <div class="col-lg-5">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h5 class="card-title">Registrar problema</h5>
-        <form id="report-form">
-          {% csrf_token %}
-          <div class="mb-2">
-            <label class="form-label">Título</label>
-            <input name="title" class="form-control" required maxlength="140">
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Categoria</label>
-            <select name="category" class="form-select">
-              <option value="iluminacao">Iluminação Pública</option>
-              <option value="via_publica">Vias e Calçadas</option>
-              <option value="agua_esgoto">Água e Esgoto</option>
-              <option value="limpeza">Limpeza Urbana</option>
-              <option value="outros" selected>Outros</option>
-            </select>
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Descrição</label>
-            <textarea name="description" class="form-control" rows="4" required></textarea>
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Foto (opcional)</label>
-            <input type="file" name="image" accept="image/*" class="form-control">
-          </div>
-          <input type="hidden" name="lat">
-          <input type="hidden" name="lng">
-          <div class="d-grid">
-            <button class="btn btn-primary">Enviar</button>
-          </div>
-        </form>
-        <div id="form-alert" class="alert mt-3 d-none"></div>
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-7">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <h5 class="card-title mb-0">Sua localização</h5>
-          <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" id="detect-location-btn">
-            <i class="bi bi-crosshair"></i>
-            <span class="d-none d-sm-inline">Detectar localização</span>
-          </button>
-        </div>
-        <small id="location-status" class="text-muted d-block mt-2"></small>
-        <div id="map" class="mt-3"></div>
-        <small class="text-muted">Arraste o marcador caso precise ajustar o local.</small>
-      </div>
-    </div>
+<div class="page-header">
+  <div>
+    <h1>Novo chamado</h1>
+    <p class="text-muted">Marque o local, descreva o problema e, se puder, envie uma foto.</p>
   </div>
 </div>
-<script>
-  window.addEventListener('DOMContentLoaded', () => initCitizenPage());
-</script>
+
+<div id="draft-notice" class="alert alert-info d-flex flex-wrap align-items-center gap-2" role="status" hidden>
+  <i class="bi bi-floppy" aria-hidden="true"></i>
+  <span class="flex-grow-1">Recuperamos o rascunho que você não enviou.</span>
+  <button type="button" class="btn btn-sm btn-outline-dark" id="discard-draft-btn">Descartar rascunho</button>
+</div>
+
+<form id="report-form" class="row g-3 g-lg-4" novalidate>
+  {% csrf_token %}
+  <section class="col-lg-7" aria-labelledby="where-title">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <h2 id="where-title" class="card-title mb-0"><span class="step-number me-1" aria-hidden="true">1</span> Onde é o problema?</h2>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="detect-location-btn">
+            <i class="bi bi-crosshair" aria-hidden="true"></i> Usar minha localização
+          </button>
+        </div>
+        <p id="location-status" class="small mb-2 text-muted" role="status" aria-live="polite">Toque no mapa para marcar o local.</p>
+        <div id="report-map-picker" class="map-picker" tabindex="0" role="application"
+             aria-label="Mapa para marcar o local do problema. Toque no mapa para posicionar o marcador."></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="col-lg-5" aria-labelledby="what-title">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 id="what-title" class="card-title"><span class="step-number me-1" aria-hidden="true">2</span> O que está acontecendo?</h2>
+
+        <div class="mb-3">
+          <label for="report-category" class="form-label">Categoria</label>
+          <select id="report-category" name="category" class="form-select" required>
+            {% for value, label in categories %}
+              <option value="{{ value }}" {% if value == 'outros' %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="report-title" class="form-label">Título</label>
+          <input id="report-title" name="title" class="form-control" required maxlength="140"
+                 placeholder="Ex.: Poste apagado na esquina" autocomplete="off">
+        </div>
+
+        <div class="mb-3">
+          <label for="report-description" class="form-label">Descrição</label>
+          <textarea id="report-description" name="description" class="form-control" rows="4" required
+                    placeholder="Dê pontos de referência para a equipe encontrar o local."></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label for="report-image" class="form-label">Foto <span class="text-muted fw-normal">(opcional)</span></label>
+          <input id="report-image" type="file" name="image" accept="image/*" class="form-control" aria-describedby="report-image-help">
+          <div id="report-image-help" class="form-text">No celular você pode tirar a foto na hora. Até 10 MB.</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg w-100">
+          <i class="bi bi-send" aria-hidden="true"></i> Enviar chamado
+        </button>
+        <div id="form-alert" class="alert mt-3" role="alert" hidden></div>
+      </div>
+    </div>
+  </section>
+</form>
 {% endblock %}

@@ -1,147 +1,126 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
-{% block title %}Ouvidoria - Cidadão Ativo{% endblock %}
+{% block title %}Ouvidoria · Cidadão Ativo{% endblock %}
 {% block content %}
-<div class="dashboard-header mb-4">
+<div class="page-header">
   <div>
-    <h2 class="mb-1">Canal de Ouvidoria</h2>
-    <p class="text-muted mb-0">
-      Espaço público para registrar sugestões, reclamações, elogios e pedidos de melhoria da gestão municipal.
-    </p>
+    <h1>Ouvidoria</h1>
+    <p class="text-muted">Sugestões, reclamações e elogios sobre os serviços do município.</p>
   </div>
 </div>
 
-<div class="card mb-4">
-  <div class="card-body">
-    <h5 class="card-title mb-3">Para que serve este canal?</h5>
-    <p class="mb-2">
-      A Ouvidoria conecta moradores, órgãos públicos e administração da plataforma para ouvir demandas coletivas da cidade.
-    </p>
-    <ul class="mb-0">
+<details class="card mb-3">
+  <summary class="card-body py-3 fw-semibold" style="cursor: pointer; min-height: 44px;">Para que serve a ouvidoria?</summary>
+  <div class="card-body pt-0">
+    <ul class="mb-2">
       <li>Registrar reclamações e sugestões sobre serviços públicos municipais.</li>
-      <li>Compartilhar elogios e oportunidades de melhoria da gestão local.</li>
-      <li>Dar transparência às manifestações da população no contexto do município.</li>
+      <li>Compartilhar elogios e ideias de melhoria para a gestão local.</li>
+      <li>Dar transparência às manifestações dos moradores do município.</li>
     </ul>
-    <hr>
-    <p class="mb-0 text-muted">
-      Moderação ativa: mensagens com palavrões, insultos, xingamentos ou linguagem ofensiva são bloqueadas automaticamente.
-    </p>
+    <p class="text-muted small mb-0">Mensagens com palavrões, insultos ou linguagem ofensiva são bloqueadas automaticamente.</p>
   </div>
-</div>
+</details>
 
 {% if user.is_admin %}
-<div class="card mb-4">
+<section class="card mb-3" aria-labelledby="filter-title">
   <div class="card-body">
-    <form method="GET" action="{% url 'ouvidoria' %}" class="row g-3 align-items-end">
-      <div class="col-md-6">
-        <label for="municipio_id" class="form-label">Filtrar município</label>
+    <h2 id="filter-title" class="card-title h6">Filtrar mensagens</h2>
+    <form method="GET" action="{% url 'ouvidoria' %}" class="row g-2 align-items-end">
+      <div class="col-12 col-md-6">
+        <label for="municipio_id" class="form-label small">Município</label>
         <select id="municipio_id" name="municipio_id" class="form-select">
           <option value="">Todos</option>
           {% for m in available_municipios %}
-          <option value="{{ m.municipio_ibge_id }}" {% if selected_municipio == m.municipio_ibge_id %}selected{% endif %}>
-            {{ m.municipio_nome }}/{{ m.municipio_uf }} ({{ m.municipio_ibge_id }})
-          </option>
+          <option value="{{ m.municipio_ibge_id }}" {% if selected_municipio == m.municipio_ibge_id %}selected{% endif %}>{{ m.municipio_nome }}/{{ m.municipio_uf }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-3 d-grid">
-        <button type="submit" class="btn btn-outline-primary">Aplicar filtro</button>
-      </div>
-      <div class="col-md-3 d-grid">
-        <a href="{% url 'ouvidoria' %}" class="btn btn-outline-secondary">Limpar</a>
-      </div>
+      {% if show_inactive %}<input type="hidden" name="show_inactive" value="1">{% endif %}
+      <div class="col-6 col-md-3 d-grid"><button type="submit" class="btn btn-primary">Filtrar</button></div>
+      <div class="col-6 col-md-3 d-grid"><a href="{% url 'ouvidoria' %}" class="btn btn-outline-secondary">Limpar</a></div>
     </form>
     {% if user.is_platform_owner %}
-      <div class="mt-3 d-flex gap-2">
+      <div class="mt-3">
         {% if show_inactive %}
-          <a href="{% url 'ouvidoria' %}{% if selected_municipio %}?municipio_id={{ selected_municipio }}{% endif %}" class="btn btn-outline-secondary btn-sm">
-            Ocultar inativas
-          </a>
+          <a href="{% url 'ouvidoria' %}{% if selected_municipio %}?municipio_id={{ selected_municipio }}{% endif %}" class="btn btn-outline-secondary btn-sm">Ocultar mensagens inativas</a>
         {% else %}
-          <a href="{% url 'ouvidoria' %}?show_inactive=1{% if selected_municipio %}&municipio_id={{ selected_municipio }}{% endif %}" class="btn btn-outline-dark btn-sm">
-            Ver inativas
-          </a>
+          <a href="{% url 'ouvidoria' %}?show_inactive=1{% if selected_municipio %}&amp;municipio_id={{ selected_municipio }}{% endif %}" class="btn btn-outline-dark btn-sm">Mostrar mensagens inativas</a>
         {% endif %}
       </div>
     {% endif %}
   </div>
-</div>
+</section>
+{% else %}
+<section class="card mb-4" aria-labelledby="new-message-title">
+  <div class="card-body">
+    <h2 id="new-message-title" class="card-title">Nova manifestação</h2>
+    <form method="POST">
+      {% csrf_token %}
+      <label for="content" class="form-label">Sua mensagem</label>
+      <textarea id="content" name="content" class="form-control" rows="4" minlength="10" maxlength="1000" required
+                aria-describedby="content-help content-count" placeholder="Escreva com clareza e respeito."></textarea>
+      <div class="d-flex justify-content-between form-text mb-3">
+        <span id="content-help">Entre 10 e 1000 caracteres. A mensagem fica visível para os moradores do seu município.</span>
+        <span id="content-count" aria-live="polite" class="ms-2 text-nowrap">0/1000</span>
+      </div>
+      <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send" aria-hidden="true"></i> Publicar</button>
+    </form>
+  </div>
+</section>
 {% endif %}
 
-<div class="card mb-4">
-  <div class="card-body">
-    <h5 class="card-title mb-3">Nova manifestação</h5>
-    {% if user.is_admin %}
-      <div class="alert alert-info mb-0">
-        Perfil administrador: visualização e acompanhamento das mensagens. Para publicar, use uma conta vinculada a município.
-      </div>
-    {% else %}
-      <form method="POST">
-        {% csrf_token %}
-        <div class="mb-3">
-          <label for="content" class="form-label">Mensagem</label>
-          <textarea
-            id="content"
-            name="content"
-            class="form-control"
-            rows="5"
-            maxlength="1000"
-            required
-            placeholder="Descreva sua manifestação com clareza e respeito."
-          ></textarea>
-          <small class="text-muted">Mínimo 10 e máximo 1000 caracteres.</small>
-        </div>
-        <button type="submit" class="btn btn-primary">Publicar na Ouvidoria</button>
-      </form>
-    {% endif %}
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-body">
-    <h5 class="card-title mb-3">Manifestações recentes</h5>
-    {% if messages_list %}
-      <div class="d-flex flex-column gap-3">
-        {% for msg in messages_list %}
-          <article class="border rounded p-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="fw-semibold">{{ msg.user.name }}</div>
-              <small class="text-muted">{{ msg.created_at | format_datetime_sp }}</small>
-            </div>
-            <div class="mb-2">{{ msg.content }}</div>
-            <div class="d-flex justify-content-between align-items-center">
-              <small class="text-muted">{{ msg.municipio_nome }}/{{ msg.municipio_uf }}</small>
-              <div class="d-flex gap-2 align-items-center">
-                {% if msg.is_active %}
-                  <span class="badge bg-success">Ativa</span>
-                {% else %}
-                  <span class="badge bg-secondary">Inativa</span>
-                {% endif %}
-                {% if user.is_platform_owner %}
-                  {% if msg.is_active %}
-                    <form method="POST" action="{% url 'inativar_mensagem_ouvidoria' msg.id %}" class="d-inline">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Inativar esta mensagem?')">
-                        Inativar
-                      </button>
-                    </form>
-                  {% else %}
-                    <form method="POST" action="{% url 'reativar_mensagem_ouvidoria' msg.id %}" class="d-inline">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-outline-success btn-sm" onclick="return confirm('Reativar esta mensagem?')">
-                        Reativar
-                      </button>
-                    </form>
+<section aria-labelledby="messages-title">
+  <h2 id="messages-title" class="h5 fw-bold mb-3">Manifestações recentes</h2>
+  {% if messages_list %}
+    <ul class="list-unstyled d-grid gap-3 mb-0">
+      {% for msg in messages_list %}
+        <li>
+          <article class="card{% if not msg.is_active %} opacity-75{% endif %}">
+            <div class="card-body">
+              <header class="d-flex flex-wrap justify-content-between gap-1 mb-2">
+                <h3 class="h6 fw-bold mb-0">{{ msg.user.name }}</h3>
+                <time class="small text-muted" datetime="{{ msg.created_at|date:'c' }}">{{ msg.created_at|format_datetime_sp }}</time>
+              </header>
+              <p class="mb-2" style="white-space: pre-line; overflow-wrap: anywhere;">{{ msg.content }}</p>
+              <footer class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="small text-muted"><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ msg.municipio_nome }}/{{ msg.municipio_uf }}</span>
+                <span class="d-flex flex-wrap gap-2 align-items-center">
+                  {% if not msg.is_active %}<span class="badge text-bg-secondary">Inativa</span>{% endif %}
+                  {% if user.is_platform_owner %}
+                    {% if msg.is_active %}
+                      <form method="POST" action="{% url 'inativar_mensagem_ouvidoria' msg.id %}" data-confirm="Inativar esta mensagem? Ela deixa de aparecer para os moradores.">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Inativar</button>
+                      </form>
+                    {% else %}
+                      <form method="POST" action="{% url 'reativar_mensagem_ouvidoria' msg.id %}" data-confirm="Reativar esta mensagem?">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-success btn-sm">Reativar</button>
+                      </form>
+                    {% endif %}
                   {% endif %}
-                {% endif %}
-              </div>
+                </span>
+              </footer>
             </div>
           </article>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="text-muted mb-0">Nenhuma manifestação registrada até o momento.</p>
-    {% endif %}
-  </div>
-</div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="datatable-empty">
+      <i class="bi bi-chat-square-text fs-1 d-block mb-2" aria-hidden="true"></i>
+      <p class="mb-0">Nenhuma manifestação até o momento.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const content = document.getElementById('content');
+  if (content) {
+    const counter = document.getElementById('content-count');
+    content.addEventListener('input', () => { counter.textContent = `${content.value.length}/1000`; });
+  }
+</script>
 {% endblock %}

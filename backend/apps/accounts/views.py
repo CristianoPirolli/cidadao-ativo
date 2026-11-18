@@ -104,7 +104,7 @@ def edit_user_by_admin(request, user_id):
         else:
             messages.success(request, f'Perfil de {user.name} atualizado com sucesso.')
             return redirect(f"{reverse('dashboard_admin')}?filter=all")
-    return render(request, 'accounts/admin_edit_user.html', {'user': user})
+    return render(request, 'accounts/admin_edit_user.html', {'target': user})
 
 
 def _admin_action(request, user_id, action, success_message):
