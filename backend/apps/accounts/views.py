@@ -44,7 +44,7 @@ def login_view(request):
             messages.error(request, 'Muitas tentativas de login. Aguarde um minuto e tente novamente.')
             return render(request, 'accounts/login.html', status=429)
 
-        login_id = request.POST.get('login_id') or request.POST.get('email', '')
+        login_id = request.POST.get('login_id', '')
         password = request.POST.get('password', '')
         try:
             user = authenticate_user(login_id, password)
@@ -79,8 +79,7 @@ def register_view(request):
             for error in exc.messages:
                 messages.error(request, error)
             return render(request, 'accounts/register.html')
-        level = messages.SUCCESS if result.flash_category == 'success' else messages.INFO
-        messages.add_message(request, level, result.message)
+        messages.success(request, result.message)
         return redirect('login')
 
     return render(request, 'accounts/register.html')

@@ -29,10 +29,6 @@ backend/media/
 backend/var/
 *.log
 
-# Arquivos de demonstração
-frontend/static/qr_code_demo.png
-.ngrok_token
-
 # ── Editores e sistema operacional ────────────────────────────────────────
 .vscode/
 .idea/

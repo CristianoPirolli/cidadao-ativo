@@ -1,206 +1,109 @@
 """
-Serviço de integração com API do IBGE
-Busca e cacheia lista de municípios brasileiros
+Municípios brasileiros a partir da API de localidades do IBGE.
+
+A lista é baixada uma vez, gravada em ``settings.DATA_DIR`` e mantida em
+memória pelo processo, evitando reler o arquivo a cada consulta.
 """
 import json
+import logging
 from pathlib import Path
 
 import requests
 from django.conf import settings
 
+logger = logging.getLogger(__name__)
 
-class IBGEService:
-    """Serviço para buscar municípios via API do IBGE"""
+API_URL = 'https://servicodados.ibge.gov.br/api/v1/localidades/municipios'
+CACHE_FILENAME = 'municipios_cache.json'
+MAX_RESULTS = 50
 
-    # URL da API do IBGE
-    API_URL = "https://servicodados.ibge.gov.br/api/v1/localidades/municipios"
+_municipios: list[dict] | None = None
+_by_id: dict[int, dict] = {}
 
-    CACHE_FILENAME = "municipios_cache.json"
 
-    @staticmethod
-    def cache_file() -> Path:
-        """Arquivo de cache em ``settings.DATA_DIR`` (gravável em runtime)."""
-        return Path(settings.DATA_DIR) / IBGEService.CACHE_FILENAME
+def _cache_file() -> Path:
+    return Path(settings.DATA_DIR) / CACHE_FILENAME
 
-    @staticmethod
-    def _ensure_cache_dir():
-        """Garante que o diretório de cache existe"""
-        cache_dir = IBGEService.cache_file().parent
-        cache_dir.mkdir(parents=True, exist_ok=True)
 
-    @staticmethod
-    def fetch_municipios(force_refresh: bool = False) -> list[dict]:
-        """
-        Busca todos os municípios brasileiros
+def _parse_uf(item: dict) -> dict | None:
+    """Extrai a UF do município (a API usa duas estruturas diferentes)."""
+    try:
+        if item.get('microrregiao'):
+            return item['microrregiao']['mesorregiao']['UF']
+        if item.get('regiao-imediata'):
+            return item['regiao-imediata']['regiao-intermediaria']['UF']
+    except (KeyError, TypeError):
+        pass
+    return None
 
-        Args:
-            force_refresh: Se True, força busca na API mesmo com cache válido
 
-        Returns:
-            Lista de dicionários com municípios
-            Formato: [{id, nome, uf, nome_completo}, ...]
-        """
-        # Verificar cache
-        if not force_refresh and IBGEService.cache_file().exists():
-            try:
-                with open(IBGEService.cache_file(), encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"Erro ao ler cache: {e}")
+def _download() -> list[dict]:
+    response = requests.get(API_URL, timeout=30)
+    response.raise_for_status()
 
-        # Buscar da API
+    municipios = []
+    for item in response.json():
+        uf = _parse_uf(item)
+        if not uf:
+            logger.warning('Município sem UF ignorado: %s', item.get('nome'))
+            continue
+        municipios.append({
+            'id': item['id'],
+            'nome': item['nome'],
+            'uf': uf['sigla'],
+            'uf_nome': uf['nome'],
+            'nome_completo': f"{item['nome']}/{uf['sigla']}",
+        })
+    municipios.sort(key=lambda m: m['nome'])
+    return municipios
+
+
+def _load() -> list[dict]:
+    cache_file = _cache_file()
+    if cache_file.exists():
         try:
-            response = requests.get(IBGEService.API_URL, timeout=30)
-            response.raise_for_status()
-            data = response.json()
+            return json.loads(cache_file.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            logger.exception('Cache de municípios inválido, baixando novamente')
 
-            # Processar dados
-            municipios = []
-            for item in data:
-                try:
-                    # Try microrregiao path first (standard structure)
-                    if item.get("microrregiao") and item["microrregiao"].get("mesorregiao"):
-                        uf_sigla = item["microrregiao"]["mesorregiao"]["UF"]["sigla"]
-                        uf_nome = item["microrregiao"]["mesorregiao"]["UF"]["nome"]
-                    # Fallback to regiao-imediata (alternative structure)
-                    elif item.get("regiao-imediata") and item["regiao-imediata"].get("regiao-intermediaria"):
-                        uf_sigla = item["regiao-imediata"]["regiao-intermediaria"]["UF"]["sigla"]
-                        uf_nome = item["regiao-imediata"]["regiao-intermediaria"]["UF"]["nome"]
-                    else:
-                        # Skip if we can't get UF info
-                        print(f"Skipping {item.get('nome')}: no UF info")
-                        continue
+    try:
+        municipios = _download()
+    except requests.RequestException:
+        logger.exception('Erro ao buscar municípios do IBGE')
+        return []
 
-                    municipio = {
-                        "id": item["id"],
-                        "nome": item["nome"],
-                        "uf": uf_sigla,
-                        "uf_nome": uf_nome,
-                        "nome_completo": f"{item['nome']}/{uf_sigla}"
-                    }
-                    municipios.append(municipio)
-                except (KeyError, TypeError) as e:
-                    print(f"Error processing municipality {item.get('nome', 'unknown')}: {e}")
-                    continue
-
-            # Ordenar por nome
-            municipios.sort(key=lambda x: x["nome"])
-
-            # Salvar cache
-            IBGEService._ensure_cache_dir()
-            with open(IBGEService.cache_file(), 'w', encoding='utf-8') as f:
-                json.dump(municipios, f, ensure_ascii=False, indent=2)
-
-            return municipios
-
-        except requests.exceptions.RequestException as e:
-            print(f"Erro ao buscar municípios do IBGE: {e}")
-            # Se falhar e não tem cache, retornar lista vazia
-            return []
-
-    @staticmethod
-    def search_municipios(query: str, uf: str | None = None) -> list[dict]:
-        """
-        Busca municípios por nome
-
-        Args:
-            query: Termo de busca (parte do nome do município)
-            uf: Filtrar por UF (opcional)
-
-        Returns:
-            Lista de municípios que correspondem à busca
-        """
-        municipios = IBGEService.fetch_municipios()
-
-        # Normalizar query
-        query_lower = query.lower().strip()
-
-        # Filtrar
-        results = []
-        for m in municipios:
-            nome_match = query_lower in m["nome"].lower()
-            uf_match = (uf is None) or (m["uf"].lower() == uf.lower())
-
-            if nome_match and uf_match:
-                results.append(m)
-
-        return results[:50]  # Limitar a 50 resultados
-
-    @staticmethod
-    def get_municipio_by_id(municipio_id: int) -> dict | None:
-        """
-        Busca município por ID do IBGE
-
-        Args:
-            municipio_id: ID do município no IBGE
-
-        Returns:
-            Dicionário com dados do município ou None
-        """
-        municipios = IBGEService.fetch_municipios()
-
-        for m in municipios:
-            if m["id"] == municipio_id:
-                return m
-
-        return None
-
-    @staticmethod
-    def get_municipio_by_nome(nome: str, uf: str) -> dict | None:
-        """
-        Busca município por nome e UF
-
-        Args:
-            nome: Nome do município
-            uf: Sigla da UF
-
-        Returns:
-            Dicionário com dados do município ou None
-        """
-        municipios = IBGEService.fetch_municipios()
-
-        nome_lower = nome.lower().strip()
-        uf_lower = uf.lower().strip()
-
-        for m in municipios:
-            if m["nome"].lower() == nome_lower and m["uf"].lower() == uf_lower:
-                return m
-
-        return None
-
-    @staticmethod
-    def get_municipios_by_uf(uf: str) -> list[dict]:
-        """
-        Busca todos os municípios de uma UF
-
-        Args:
-            uf: Sigla da UF
-
-        Returns:
-            Lista de municípios da UF
-        """
-        municipios = IBGEService.fetch_municipios()
-        uf_lower = uf.lower().strip()
-
-        return [m for m in municipios if m["uf"].lower() == uf_lower]
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_file.write_text(json.dumps(municipios, ensure_ascii=False), encoding='utf-8')
+    return municipios
 
 
-# Funções de conveniência
 def get_all_municipios() -> list[dict]:
-    """Retorna todos os municípios brasileiros"""
-    return IBGEService.fetch_municipios()
-
-
-def search_municipios(query: str, uf: str | None = None) -> list[dict]:
-    """Busca municípios por nome"""
-    return IBGEService.search_municipios(query, uf)
+    """Todos os municípios, ordenados por nome. Falhas não ficam em cache."""
+    global _municipios, _by_id
+    if not _municipios:
+        _municipios = _load()
+        _by_id = {m['id']: m for m in _municipios}
+    return _municipios
 
 
 def get_municipio(municipio_id: int) -> dict | None:
-    """Busca município por ID"""
-    return IBGEService.get_municipio_by_id(municipio_id)
+    get_all_municipios()
+    return _by_id.get(municipio_id)
+
+
+def get_municipios_by_uf(uf: str) -> list[dict]:
+    uf = uf.strip().upper()
+    return [m for m in get_all_municipios() if m['uf'] == uf]
+
+
+def search_municipios(query: str, uf: str | None = None) -> list[dict]:
+    """Municípios cujo nome contém ``query`` (opcionalmente filtrados por UF)."""
+    query = query.strip().lower()
+    candidates = get_municipios_by_uf(uf) if uf else get_all_municipios()
+    return [m for m in candidates if query in m['nome'].lower()][:MAX_RESULTS]
 
 
 def find_municipio(nome: str, uf: str) -> dict | None:
-    """Busca município por nome e UF"""
-    return IBGEService.get_municipio_by_nome(nome, uf)
+    """Correspondência exata (sem diferenciar maiúsculas) de nome e UF."""
+    nome = nome.strip().lower()
+    return next((m for m in get_municipios_by_uf(uf) if m['nome'].lower() == nome), None)

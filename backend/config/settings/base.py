@@ -152,7 +152,6 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 REPORT_IMAGE_MAX_SIZE_MB = 10
 RESIDENCE_PROOF_MAX_SIZE = 5 * 1024 * 1024
-RESIDENCE_PROOF_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png'}
 RESIDENCE_PROOF_TYPES = {
     'conta_luz': 'Conta de Luz',
     'conta_agua': 'Conta de Água',
@@ -180,7 +179,6 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'noreply@cidadaoativo.com')
 # ── Regras de negócio ──────────────────────────────────────────────────────
 URGENCY_VOTE_MAX_DISTANCE_METERS = int(env('URGENCY_VOTE_MAX_DISTANCE_METERS', '200'))
 PLATFORM_OWNER_EMAIL = (env('PLATFORM_OWNER_EMAIL') or '').strip().lower()
-DEMO_PUBLIC_URL = env('DEMO_PUBLIC_URL')
 
 # ── Mapas (Leaflet) ────────────────────────────────────────────────────────
 # Provedor de tiles do mapa base. O padrão (Esri World Street Map) não exige

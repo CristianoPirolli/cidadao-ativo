@@ -16,11 +16,19 @@ from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import Count, Q
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from apps.accounts.models import User, UserType
 from apps.core.services.files import validate_image_file
-from apps.reports.models import Report, ReportCategory, ReportHistory, ReportStatus, ReportUrgencyVote
+from apps.reports.models import (
+    API_STATUS_ALIASES,
+    Report,
+    ReportCategory,
+    ReportHistory,
+    ReportStatus,
+    ReportUrgencyVote,
+)
 from apps.reports.services.geo import distance_meters
 
 logger = logging.getLogger(__name__)
@@ -272,13 +280,20 @@ def update_report_status(request, report_id):
         new_status = data.get('status')
         comment = data.get('comment', '')
 
-        valid_statuses = {'aberto', 'visualizado', 'em_andamento', 'em_execucao', 'resolvido', 'rejeitado'}
-        if new_status not in valid_statuses:
-            return JsonResponse({'success': False, 'error': f'Status inválido. Use: {", ".join(valid_statuses)}'}, status=400)
+        aliases = {alias: status for status, alias in API_STATUS_ALIASES.items()}
+        canonical_status = aliases.get(new_status, new_status)
+        if canonical_status not in ReportStatus.values:
+            valid = sorted([*ReportStatus.values, *aliases])
+            return JsonResponse({'success': False, 'error': f'Status inválido. Use: {", ".join(valid)}'}, status=400)
 
-        canonical_status = {'em_execucao': 'em_andamento'}.get(new_status, new_status)
         old_status = report.status
         report.status = canonical_status
+        # Usado nas métricas de tempo de resolução do painel do órgão
+        if canonical_status == ReportStatus.RESOLVED:
+            if old_status != ReportStatus.RESOLVED:
+                report.completed_at = timezone.now()
+        else:
+            report.completed_at = None
         if not report.assigned_user_id:
             report.assigned_user = request.user
         report.save()

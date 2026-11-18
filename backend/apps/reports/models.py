@@ -1,4 +1,4 @@
-"""Modelos de chamados (denúncias), histórico, votos e notificações."""
+"""Modelos de chamados (denúncias), histórico e votos de urgência."""
 import os
 
 from django.conf import settings
@@ -12,10 +12,18 @@ class ReportStatus(models.TextChoices):
     IN_PROGRESS = 'em_andamento', 'Em Andamento'
     RESOLVED = 'resolvido', 'Resolvido'
     REJECTED = 'rejeitado', 'Rejeitado'
-    # Status legados mantidos por compatibilidade com dados antigos
-    IN_EXECUTION = 'em_execucao', 'Em Execução'
-    COMPLETED = 'concluido', 'Concluído'
-    EVALUATED = 'avaliado', 'Avaliado'
+
+
+# Status aceito na API como sinônimo de ``em_andamento``.
+API_STATUS_ALIASES = {ReportStatus.IN_PROGRESS: 'em_execucao'}
+
+STATUS_COLORS = {
+    ReportStatus.OPEN: 'danger',
+    ReportStatus.VIEWED: 'info',
+    ReportStatus.IN_PROGRESS: 'warning',
+    ReportStatus.RESOLVED: 'success',
+    ReportStatus.REJECTED: 'secondary',
+}
 
 
 class ReportCategory(models.TextChoices):
@@ -39,16 +47,7 @@ class Report(models.Model):
     created_at = models.DateTimeField(default=timezone.now, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     viewed_at = models.DateTimeField(null=True, blank=True)
-
-    # Conclusão
-    completion_image = models.CharField(max_length=255, null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-
-    # Avaliação
-    rating = models.IntegerField(null=True, blank=True)
-    citizen_feedback = models.TextField(null=True, blank=True)
-    evaluation_image = models.CharField(max_length=255, null=True, blank=True)
-    evaluated_at = models.DateTimeField(null=True, blank=True)
 
     # Município
     municipio_ibge_id = models.IntegerField(null=True, blank=True, db_index=True)
@@ -80,38 +79,18 @@ class Report(models.Model):
 
     @property
     def status_display(self):
-        status_map = {
-            'aberto': 'Aberto',
-            'visualizado': 'Visualizado',
-            'em_andamento': 'Em Andamento',
-            'em_execucao': 'Em Execução',
-            'concluido': 'Concluído',
-            'avaliado': 'Avaliado',
-            'rejeitado': 'Rejeitado',
-            'resolvido': 'Resolvido',
-        }
-        return status_map.get(self.status, status_map.get(self.api_status, self.api_status))
+        return self.get_status_display()
 
     @property
     def api_status(self):
-        alias_map = {'em_andamento': 'em_execucao'}
-        return alias_map.get(self.status, self.status)
+        """Status exposto pela API (``em_andamento`` é publicado como ``em_execucao``)."""
+        return API_STATUS_ALIASES.get(self.status, self.status)
 
     @property
     def status_color(self):
-        color_map = {
-            'aberto': 'danger',
-            'visualizado': 'info',
-            'em_andamento': 'warning',
-            'em_execucao': 'warning',
-            'concluido': 'success',
-            'resolvido': 'success',
-            'avaliado': 'primary',
-            'rejeitado': 'secondary',
-        }
-        return color_map.get(self.status, 'secondary')
+        return STATUS_COLORS.get(self.status, 'secondary')
 
-    def to_dict(self, include_image_url=True):
+    def to_dict(self):
         data = {
             'id': self.id,
             'title': self.title,
@@ -133,10 +112,8 @@ class Report(models.Model):
             data['user_name'] = self.user.name
         if self.assigned_user:
             data['assigned_name'] = self.assigned_user.name
-        if include_image_url and self.image_path:
+        if self.image_path:
             data['image_url'] = f'{settings.MEDIA_URL}{os.path.basename(self.image_path)}'
-        elif self.image_path:
-            data['image_path'] = self.image_path
         return data
 
 
@@ -197,34 +174,3 @@ class ReportUrgencyVote(models.Model):
 
     def __str__(self):
         return f'<ReportUrgencyVote report={self.report_id} user={self.user_id}>'
-
-
-class Notification(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name='notifications', db_index=True
-    )
-    report = models.ForeignKey(
-        Report, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='notifications', db_index=True
-    )
-    message = models.TextField()
-    type = models.CharField(max_length=50)
-    is_read = models.BooleanField(default=False, db_index=True)
-    created_at = models.DateTimeField(default=timezone.now, db_index=True)
-
-    class Meta:
-        db_table = 'notification'
-        verbose_name = 'notificação'
-        verbose_name_plural = 'notificações'
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'report_id': self.report_id,
-            'message': self.message,
-            'type': self.type,
-            'is_read': self.is_read,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-        }

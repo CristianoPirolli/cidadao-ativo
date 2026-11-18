@@ -55,7 +55,7 @@ def test_format_duration():
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('url', ['/login', '/register', '/qr-demo'])
+@pytest.mark.parametrize('url', ['/login', '/register'])
 def test_public_pages_render(client, url):
     assert client.get(url).status_code == 200
 

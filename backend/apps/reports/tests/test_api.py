@@ -109,6 +109,20 @@ class TestUpdateStatus:
         client.force_login(agency)
         assert self.update(client, report, 'xpto').status_code == 400
 
+    def test_legacy_status_is_rejected(self, client, agency, report):
+        client.force_login(agency)
+        assert self.update(client, report, 'concluido').status_code == 400
+
+    def test_resolving_records_completion_time(self, client, agency, report):
+        client.force_login(agency)
+        self.update(client, report, 'resolvido')
+        report.refresh_from_db()
+        assert report.completed_at is not None
+
+        self.update(client, report, 'em_andamento')
+        report.refresh_from_db()
+        assert report.completed_at is None
+
 
 @pytest.mark.django_db
 def test_stats_counts_by_category(client, report):
