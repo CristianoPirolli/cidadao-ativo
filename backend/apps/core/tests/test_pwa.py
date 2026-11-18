@@ -39,3 +39,8 @@ def test_pages_use_local_assets_and_manifest(client):
     html = client.get('/login').content.decode()
     assert 'rel="manifest"' in html
     assert 'cdn.jsdelivr.net' not in html and 'unpkg.com' not in html
+
+
+@pytest.mark.django_db
+def test_service_worker_precaches_without_cookies(client):
+    assert "credentials: 'omit'" in client.get('/sw.js').content.decode()

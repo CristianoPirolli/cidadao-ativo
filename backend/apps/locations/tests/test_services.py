@@ -94,9 +94,11 @@ def test_failed_geocoding_is_not_cached(municipios, clear_cache):
     assert nominatim.call_count == 2
 
 
-def test_nominatim_calls_are_spaced(monkeypatch):
+def test_nominatim_slot_is_shared(monkeypatch, clear_cache):
+    from django.core.cache import cache
     sleeps = []
-    monkeypatch.setattr(geocoding.time, 'sleep', sleeps.append)
-    monkeypatch.setattr(geocoding, '_last_request_at', geocoding.time.monotonic())
-    geocoding._wait_for_rate_limit()
-    assert sleeps and 0 < sleeps[0] <= geocoding.MIN_INTERVAL_SECONDS
+    monkeypatch.setattr(geocoding.time, 'sleep', lambda seconds: (sleeps.append(seconds), cache.delete(geocoding.RATE_LIMIT_KEY)))
+    geocoding._wait_for_rate_limit()          # pega a vaga livre
+    assert sleeps == []
+    geocoding._wait_for_rate_limit()          # vaga ocupada (outro processo): espera
+    assert sleeps

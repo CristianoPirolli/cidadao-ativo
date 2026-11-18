@@ -282,7 +282,7 @@ def update_report_status(request, report_id):
         comment = data.get('comment', '')
 
         aliases = {alias: status for status, alias in API_STATUS_ALIASES.items()}
-        canonical_status = aliases.get(new_status, new_status)
+        canonical_status = aliases.get(new_status, new_status) if isinstance(new_status, str) else None
         if canonical_status not in ReportStatus.values:
             valid = sorted([*ReportStatus.values, *aliases])
             return JsonResponse({'success': False, 'error': f'Status inválido. Use: {", ".join(valid)}'}, status=400)

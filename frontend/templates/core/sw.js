@@ -5,7 +5,10 @@ const OFFLINE_URL = {{ offline_url_json|safe }};
 const STATIC_PREFIX = {{ static_prefix_json|safe }};
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  // Sem cookies: a página offline guardada é sempre anônima (sem nome do usuário
+  // nem mensagens da sessão, que seriam consumidas por esta requisição)
+  const requests = PRECACHE.map((url) => new Request(url, { credentials: 'omit' }));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(requests)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {

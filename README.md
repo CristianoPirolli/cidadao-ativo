@@ -55,7 +55,7 @@ Projeto desenvolvido no PRATIC IV — UNOESC. Os materiais acadêmicos estão em
 | Banco de dados | PostgreSQL 16 (driver psycopg 3) |
 | Frontend | Templates Django, Bootstrap 5, Leaflet; mobile-first, acessível (WCAG 2.2 AA) e instalável (PWA) |
 | Servidor | Gunicorn + Nginx, WhiteNoise para estáticos |
-| Infra | Docker / Docker Compose |
+| Infra | Docker / Docker Compose, Redis (cache compartilhado) |
 | Qualidade | pytest + pytest-django, Ruff, GitHub Actions |
 
 ## Estrutura do projeto
@@ -92,7 +92,7 @@ cidadao-ativo/
 │   ├── backend/                 # Dockerfile e entrypoint
 │   └── nginx/                   # Configuração do proxy reverso
 ├── docs/pratic-iv/              # Relatório, diagnóstico e apresentação
-├── docker-compose.yml           # Stack completa (db + backend + nginx)
+├── docker-compose.yml           # Stack completa (db + redis + backend + nginx)
 ├── docker-compose.dev.yml       # Sobrescrita para desenvolvimento
 └── .env.example
 ```
@@ -193,6 +193,7 @@ Todas estão documentadas em [`.env.example`](.env.example). As principais:
 | `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`… | SMTP para e-mails de aprovação, avisos de chamado e recuperação de senha (sem `EMAIL_HOST_USER`, os e-mails só aparecem no log) |
 | `PLATFORM_OWNER_EMAIL` | E-mail do dono da plataforma (acesso ao painel SaaS) |
 | `URGENCY_VOTE_MAX_DISTANCE_METERS` | Distância máxima para votar urgência |
+| `REDIS_URL` | Cache compartilhado (limite de tentativas, geocodificação). Já configurado no Docker Compose; sem ele, usa cache em arquivo |
 | `DJANGO_SECURE_SSL_REDIRECT`, `DJANGO_SECURE_COOKIES` | Ative quando estiver atrás de HTTPS |
 
 ## API
@@ -246,7 +247,7 @@ Bootstrap, Bootstrap Icons e Leaflet ficam em `frontend/static/vendor/` (sem CDN
 ## Privacidade (LGPD) e acessibilidade
 
 - Política de privacidade em `/privacidade`, com controlador, contato e prazo de guarda vindos de `PRIVACY_CONTROLLER_NAME`, `PRIVACY_CONTACT_EMAIL` e `RESIDENCE_PROOF_RETENTION_DAYS`. **O texto é um modelo: revise com o jurídico antes de publicar.**
-- O cadastro exige o aceite da política, e a data do aceite fica registrada (`User.privacy_accepted_at`).
+- O cadastro exige o aceite da política, e a data do aceite fica registrada (`User.privacy_accepted_at`). Quem já tinha conta é levado a uma tela de aceite no próximo acesso.
 - Comprovantes de residência são apagados depois do prazo de guarda pelo comando abaixo. Agende a execução diária (cron do servidor, por exemplo):
 
 ```bash
