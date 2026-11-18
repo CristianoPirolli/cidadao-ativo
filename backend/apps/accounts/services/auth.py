@@ -103,6 +103,9 @@ def _validate_common_fields(form: Mapping[str, str]) -> tuple[dict[str, str], li
         except ValidationError as exc:
             errors.extend(exc.messages)
 
+    if not form.get('accept_privacy'):
+        errors.append('É preciso aceitar a política de privacidade para criar a conta.')
+
     if user_type not in {'cidadao', 'orgao'}:
         errors.append('Tipo de usuário inválido.')
 
@@ -225,6 +228,7 @@ def register_user(form: Mapping[str, str], files: Mapping[str, object]) -> Regis
         municipio_origem_nome=extra_data['municipio_origem_nome'],
         municipio_origem_uf=extra_data['municipio_origem_uf'],
         residence_proof_type=extra_data['residence_proof_type'] if user_type == 'cidadao' else None,
+        privacy_accepted_at=timezone.now(),
         is_active=True,
     )
     user.set_password(base_data['password'])

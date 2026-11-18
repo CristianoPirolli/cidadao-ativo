@@ -56,10 +56,12 @@ def test_citizen_registration_creates_pending_request(client, png_file):
         'municipio_origem_uf': MUNICIPIO['uf'],
         'residence_proof_type': 'conta_luz',
         'residence_proof': png_file,
+        'accept_privacy': '1',
     })
     assert response.status_code == 302
     user = User.objects.get(email='novo@example.com')
     assert user.is_approved is False
+    assert user.privacy_accepted_at is not None
     assert user.residence_proof_path.startswith('residence_proofs/')
     assert ApprovalRequest.objects.filter(user=user, status='pending').exists()
 
@@ -116,7 +118,7 @@ def test_agency_from_other_city_cannot_see_residence_proof(client, agency, citiz
 def test_registration_rejects_weak_password(client, png_file):
     client.post(reverse('register'), {
         'user_type': 'cidadao', 'name': 'Fraco', 'email': 'fraco@example.com',
-        'password': '12345678', 'confirm_password': '12345678', 'cpf': '529.982.247-25',
+        'password': '12345678', 'confirm_password': '12345678', 'cpf': '529.982.247-25', 'accept_privacy': '1',
         'municipio_origem_id': MUNICIPIO['id'], 'municipio_origem_nome': MUNICIPIO['nome'],
         'municipio_origem_uf': MUNICIPIO['uf'], 'residence_proof_type': 'conta_luz', 'residence_proof': png_file,
     })
@@ -135,3 +137,16 @@ def test_rejected_citizen_receives_reason_by_email(client, agency, citizen):
     subject, recipients, template, context = send.call_args.args
     assert recipients == ['maria@example.com']
     assert context['reason'] == 'Comprovante ilegível'
+
+
+@pytest.mark.django_db
+def test_registration_requires_privacy_consent(client, png_file):
+    response = client.post(reverse('register'), {
+        'user_type': 'cidadao', 'name': 'Sem Aceite', 'email': 'sem@example.com',
+        'password': 'senha-forte-123', 'confirm_password': 'senha-forte-123', 'cpf': '529.982.247-25',
+        'municipio_origem_id': MUNICIPIO['id'], 'municipio_origem_nome': MUNICIPIO['nome'],
+        'municipio_origem_uf': MUNICIPIO['uf'], 'residence_proof_type': 'conta_luz', 'residence_proof': png_file,
+    })
+    assert response.status_code == 200
+    assert not User.objects.filter(email='sem@example.com').exists()
+    assert 'política de privacidade' in response.content.decode()

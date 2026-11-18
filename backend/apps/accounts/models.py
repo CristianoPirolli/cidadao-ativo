@@ -58,6 +58,7 @@ class User(AbstractBaseUser):
         related_name='approved_users'
     )
     approved_at = models.DateTimeField(null=True, blank=True)
+    privacy_accepted_at = models.DateTimeField('aceite da política de privacidade', null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     last_login = models.DateTimeField(null=True, blank=True)
 

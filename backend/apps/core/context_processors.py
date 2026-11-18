@@ -11,3 +11,10 @@ def map_settings(request):
             'maxZoom': settings.MAP_TILE_MAX_ZOOM,
         }
     }
+
+
+def site_settings(request):
+    """Opções globais de interface (acessibilidade e privacidade)."""
+    return {
+        'vlibras_enabled': settings.VLIBRAS_ENABLED,
+    }

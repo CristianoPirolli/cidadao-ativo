@@ -88,6 +88,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.core.context_processors.map_settings',
+                'apps.core.context_processors.site_settings',
             ],
         },
     },
@@ -193,6 +194,19 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'noreply@cidadaoativo.com')
 # ── Regras de negócio ──────────────────────────────────────────────────────
 URGENCY_VOTE_MAX_DISTANCE_METERS = int(env('URGENCY_VOTE_MAX_DISTANCE_METERS', '200'))
 PLATFORM_OWNER_EMAIL = (env('PLATFORM_OWNER_EMAIL') or '').strip().lower()
+
+# ── Privacidade (LGPD) ─────────────────────────────────────────────────────
+# Dados exibidos na política de privacidade (/privacidade). Revise com o
+# jurídico antes de publicar.
+PRIVACY_CONTROLLER_NAME = env('PRIVACY_CONTROLLER_NAME', 'Cidadão Ativo')
+PRIVACY_CONTACT_EMAIL = env('PRIVACY_CONTACT_EMAIL') or DEFAULT_FROM_EMAIL
+# Dias que o comprovante de residência é guardado após a aprovação ou recusa
+# do cadastro (comando ``manage.py purge_residence_proofs``)
+RESIDENCE_PROOF_RETENTION_DAYS = int(env('RESIDENCE_PROOF_RETENTION_DAYS', '90'))
+
+# ── Acessibilidade ─────────────────────────────────────────────────────────
+# Tradutor de Libras do governo federal (carrega script de vlibras.gov.br)
+VLIBRAS_ENABLED = env_bool('VLIBRAS_ENABLED', True)
 
 # ── Mapas (Leaflet) ────────────────────────────────────────────────────────
 # Provedor de tiles do mapa base. O padrão (Esri World Street Map) não exige
