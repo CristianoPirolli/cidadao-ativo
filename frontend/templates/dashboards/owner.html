@@ -35,8 +35,7 @@
 <section class="card" aria-labelledby="agencies-title">
   <div class="card-body">
     <h2 id="agencies-title" class="card-title">{% if tab == 'agencies' %}Órgãos aguardando aprovação{% else %}Todos os órgãos públicos{% endif %}</h2>
-    {% if tab == 'agencies' %}{% with agencies=pending_agencies %}{% include 'dashboards/_owner_agencies.html' %}{% endwith %}
-    {% else %}{% with agencies=all_agencies %}{% include 'dashboards/_owner_agencies.html' %}{% endwith %}{% endif %}
+    {% include 'dashboards/_owner_agencies.html' %}
   </div>
 </section>
 
