@@ -4,12 +4,12 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from apps.reports.models import Report, ReportHistory, ReportUrgencyVote
+from apps.reports.models import Report, ReportCategory, ReportHistory, ReportStatus, ReportUrgencyVote
 
 
 @login_required
 def denuncia(request):
-    return render(request, 'reports/report_form.html')
+    return render(request, 'reports/report_form.html', {'categories': ReportCategory.choices})
 
 
 @login_required
@@ -47,4 +47,5 @@ def report_detail(request, report_id):
         'report': report,
         'history': history,
         'has_voted_urgency': has_voted_urgency,
+        'statuses': ReportStatus.choices,
     })

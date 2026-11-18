@@ -89,6 +89,10 @@ class User(AbstractBaseUser):
         user_email = (self.email or '').strip().lower()
         return bool(owner_email and user_email and owner_email == user_email)
 
+    @property
+    def residence_proof_type_display(self):
+        return settings.RESIDENCE_PROOF_TYPES.get(self.residence_proof_type, self.residence_proof_type or '-')
+
     # Necessário para o Django admin
     @property
     def is_staff(self):

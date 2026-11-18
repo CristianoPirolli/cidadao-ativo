@@ -1,131 +1,41 @@
 {% extends 'base.html' %}
-{% block title %}Entrar - Cidadão Ativo{% endblock %}
+{% block title %}Entrar · Cidadão Ativo{% endblock %}
 {% block content %}
-<div class="row align-items-center justify-content-center g-4 login-grid">
-  <div class="col-lg-5">
-    <div class="card shadow-sm h-100 login-type-panel">
-      <div class="card-body">
-        <p class="text-uppercase small fw-semibold text-primary mb-1">Escolha seu acesso</p>
-        <h3 class="fw-bold mb-4 text-neutral-900">Quem está entrando agora?</h3>
-        <div class="login-type-selector">
-          <button type="button" class="login-type-option active" data-login-type="cidadao">
-            <i class="bi bi-person fs-3"></i>
-            <div>
-              <strong>Cidadão</strong>
-              <p class="mb-0 text-muted small">Acompanha os chamados enviados e avalia os atendimentos.</p>
-            </div>
-          </button>
-          <button type="button" class="login-type-option" data-login-type="orgao">
-            <i class="bi bi-building fs-3"></i>
-            <div>
-              <strong>Órgão público / Admin</strong>
-              <p class="mb-0 text-muted small">Gerencia demandas do município e aprova novos cadastros.</p>
-            </div>
-          </button>
-        </div>
-        <div class="mt-4 text-muted small d-flex align-items-center gap-2">
-          <i class="bi bi-shield-check text-success"></i>
-          <span>Ambiente seguro e auditado.</span>
-        </div>
+<div class="auth-card">
+  <div class="glass-card">
+    <h1 class="h3 fw-bold mb-1">Entrar</h1>
+    <p class="text-muted mb-4">Cidadãos entram com o CPF. Órgãos públicos e administradores, com o e-mail.</p>
+
+    <form method="POST" action="{% url 'login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" novalidate>
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="login_id" class="form-label">CPF ou e-mail</label>
+        <input type="text" class="form-control form-control-lg" id="login_id" name="login_id"
+               autocomplete="username" autocapitalize="none" spellcheck="false"
+               aria-describedby="login_id_help" required autofocus
+               value="{{ request.POST.login_id|default:'' }}">
+        <div id="login_id_help" class="form-text">Ex.: 123.456.789-00 ou nome@prefeitura.gov.br</div>
       </div>
-    </div>
-  </div>
-  <div class="col-lg-5">
-    <div class="glass-card h-100">
+
       <div class="mb-4">
-        <h2 class="fw-bold mb-1 text-primary" id="loginTitle">Entrar como cidadão</h2>
-        <p class="text-muted mb-0" id="loginSubtitle">Use seu CPF para acessar seu painel.</p>
+        <label for="password" class="form-label">Senha</label>
+        <div class="input-group">
+          <input type="password" class="form-control form-control-lg" id="password" name="password"
+                 autocomplete="current-password" required>
+          <button class="btn btn-outline-secondary" type="button" data-toggle-password="password"
+                  aria-label="Mostrar senha" aria-pressed="false">
+            <i class="bi bi-eye" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
 
-      <form method="POST" action="{% url 'login' %}" id="loginForm" novalidate>
-        {% csrf_token %}
-        <input type="hidden" name="user_type_selected" id="user_type_selected" value="cidadao">
+      <button type="submit" class="btn btn-primary btn-lg w-100">Entrar</button>
+    </form>
 
-        <div class="mb-3">
-          <label for="login_id" class="form-label fw-semibold" id="loginLabel">CPF</label>
-          <input
-            type="text"
-            class="form-control form-control-lg"
-            id="login_id"
-            name="login_id"
-            placeholder="Digite seu CPF"
-            required
-            autofocus>
-        </div>
-
-        <div class="mb-3">
-          <label for="password" class="form-label fw-semibold">Senha</label>
-          <input
-            type="password"
-            class="form-control form-control-lg"
-            id="password"
-            name="password"
-            placeholder="Digite sua senha"
-            required>
-        </div>
-
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember">
-            <label class="form-check-label" for="remember">
-              Lembrar sessão
-            </label>
-          </div>
-          <a href="{% url 'register' %}" class="small fw-semibold text-primary">
-            Precisa criar uma conta?
-          </a>
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100 py-2 fs-6">
-          Acessar painel
-        </button>
-      </form>
-    </div>
+    <p class="text-center mt-4 mb-0">
+      Ainda não tem conta? <a href="{% url 'register' %}" class="fw-semibold">Criar conta</a>
+    </p>
   </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const typeButtons = document.querySelectorAll('.login-type-option');
-    const typeInput = document.getElementById('user_type_selected');
-    const title = document.getElementById('loginTitle');
-    const subtitle = document.getElementById('loginSubtitle');
-    const label = document.getElementById('loginLabel');
-    const loginField = document.getElementById('login_id');
-
-    const typeConfig = {
-      cidadao: {
-        title: 'Entrar como cidadão',
-        subtitle: 'Use seu CPF para acessar seu painel.',
-        label: 'CPF',
-        placeholder: 'Digite seu CPF'
-      },
-      orgao: {
-        title: 'Entrar como órgão / admin',
-        subtitle: 'Use o e-mail institucional cadastrado.',
-        label: 'E-mail institucional',
-        placeholder: 'nome@orgaopublico.gov.br'
-      }
-    };
-
-    function applyType(type) {
-      const config = typeConfig[type] || typeConfig.cidadao;
-      typeInput.value = type;
-      title.textContent = config.title;
-      subtitle.textContent = config.subtitle;
-      label.textContent = config.label;
-      loginField.placeholder = config.placeholder;
-      typeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.loginType === type));
-      loginField.focus();
-    }
-
-    typeButtons.forEach(btn => {
-      btn.addEventListener('click', () => applyType(btn.dataset.loginType));
-    });
-
-    applyType(typeInput.value);
-  });
-</script>
-{% endblock %}
