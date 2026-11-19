@@ -162,6 +162,14 @@
   function initMap(el, center = DEFAULT_COORDS, zoom = 13) {
     const map = L.map(el, { tap: true }).setView(center, zoom);
     const tiles = getMapConfig();
+    if (tiles.markerIcon) {
+      L.Icon.Default.prototype.options.imagePath = '';
+      L.Icon.Default.mergeOptions({
+        iconUrl: tiles.markerIcon,
+        iconRetinaUrl: tiles.markerIcon2x,
+        shadowUrl: tiles.markerShadow,
+      });
+    }
     L.tileLayer(tiles.tileUrl, { maxZoom: tiles.maxZoom, attribution: tiles.attribution }).addTo(map);
     return map;
   }
@@ -251,7 +259,12 @@
       try {
         const pos = await getPosition();
         placeMarker(pos.coords.latitude, pos.coords.longitude, 17);
-        setStatus('Localização encontrada. Se precisar, toque no mapa ou arraste o marcador para ajustar.', 'success');
+        const accuracy = Math.round(pos.coords.accuracy || 0);
+        if (accuracy > 500) {
+          setStatus(`Localização aproximada (erro de cerca de ${accuracy} m). Toque no mapa ou arraste o marcador para o local exato.`, 'warning');
+        } else {
+          setStatus('Localização encontrada. Se precisar, toque no mapa ou arraste o marcador para ajustar.', 'success');
+        }
       } catch (err) {
         setStatus(`${err.message} Toque no mapa para marcar o local.`, 'danger');
         if (showErrors) showNotification(err.message, 'warning');
